@@ -72,3 +72,9 @@ func (c *Connection) Inset(table *Table) {
 		log.Fatalln(err)
 	}
 }
+
+func (c *Connection) Select(table *Table) (*sql.Rows, error) {
+
+	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(table.columns, ", "), table.shema, table.name)
+	return c.database.Query(sql)
+}
