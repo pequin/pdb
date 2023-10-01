@@ -5,12 +5,22 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
 type Connection struct {
 	database *sql.DB
+}
+
+type Get struct {
+	from    string
+	shema   string
+	columns []string
+	order   map[string]bool
+	limit   uint64
+	offset  uint64
 }
 
 type Table struct {
@@ -33,18 +43,6 @@ func NewConnection(user, password, host, database string) *Connection {
 	}
 
 	return &Connection{db}
-}
-
-// The NewInset function allocates and initializes an pointer to object of type Inset.
-func NewTable(table string, columns ...string) *Table {
-
-	return &Table{table, "public", columns, make([]any, 0)}
-}
-
-// Adds a new row.
-func (t *Table) AddRow(values ...any) {
-
-	t.values = append(t.values, values...)
 }
 
 func (c *Connection) Inset(table *Table) {
@@ -73,13 +71,61 @@ func (c *Connection) Inset(table *Table) {
 	}
 }
 
-func (c *Connection) Select(row func(dest ...any), table string, columns ...string) {
+func NewGet(from string, columns ...string) *Get {
+	return &Get{from, "public", columns, make(map[string]bool), 0, 0}
+}
 
-	scan := make([]any, 0, len(columns))
+func (g *Get) Sort(by string, ascending bool) {
+	g.order[by] = ascending
+}
 
-	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(columns, ", "), "public", table)
+func (g *Get) Limit(limit uint64) {
+	g.limit = limit
+}
 
-	rows, err := c.database.Query(sql)
+func (g *Get) Offset(offset uint64) {
+	g.offset = offset
+}
+
+func (g *Get) string() string {
+
+	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(g.columns, ", "), g.shema, g.from)
+
+	if len(g.order) > 0 {
+
+		sql += " ORDER BY"
+
+		for by, asc := range g.order {
+
+			sql += " " + by
+
+			if asc {
+				sql += " ASC"
+			} else {
+				sql += " DESC"
+			}
+
+			sql += ","
+		}
+
+		sql = strings.TrimSuffix(sql, ",")
+	}
+
+	if g.limit > 0 {
+		sql += fmt.Sprintf(" LIMIT %d", g.limit)
+	}
+	if g.offset > 0 {
+		sql += fmt.Sprintf(" OFFSET %d", g.offset)
+	}
+
+	return sql + ";"
+}
+
+func (c *Connection) Get(by *Get, row func(data ...any)) {
+
+	scan := make([]any, 0, len(by.columns))
+
+	rows, err := c.database.Query(by.string())
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -110,6 +156,9 @@ func (c *Connection) Select(row func(dest ...any), table string, columns ...stri
 		case "NUMERIC":
 			var numeric float64
 			scan = append(scan, &numeric)
+		case "TIMESTAMP":
+			var timestamp time.Time
+			scan = append(scan, &timestamp)
 		default:
 			var other any
 			scan = append(scan, &other)
@@ -125,4 +174,18 @@ func (c *Connection) Select(row func(dest ...any), table string, columns ...stri
 
 		row(scan...)
 	}
+
+	defer rows.Close()
+}
+
+// The NewInset function allocates and initializes an pointer to object of type Inset.
+func NewTable(table string, columns ...string) *Table {
+
+	return &Table{table, "public", columns, make([]any, 0)}
+}
+
+// Adds a new row.
+func (t *Table) AddRow(values ...any) {
+
+	t.values = append(t.values, values...)
 }
