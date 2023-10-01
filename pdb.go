@@ -73,8 +73,56 @@ func (c *Connection) Inset(table *Table) {
 	}
 }
 
-func (c *Connection) Select(table *Table) (*sql.Rows, error) {
+func (c *Connection) Select(row func(dest ...any), table string, columns ...string) {
 
-	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(table.columns, ", "), table.shema, table.name)
-	return c.database.Query(sql)
+	scan := make([]any, 0, len(columns))
+
+	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(columns, ", "), "public", table)
+
+	rows, err := c.database.Query(sql)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	columnType, error := rows.ColumnTypes()
+	if error != nil {
+		log.Fatalln(error)
+	}
+
+	for i := 0; i < len(columnType); i++ {
+
+		switch columnType[i].DatabaseTypeName() {
+		case "INT2":
+			var smallint int16
+			scan = append(scan, &smallint)
+		case "INT4":
+			var integer int32
+			scan = append(scan, &integer)
+		case "INT8":
+			var bigint int64
+			scan = append(scan, &bigint)
+		case "FLOAT4":
+			var real float32
+			scan = append(scan, &real)
+		case "FLOAT8":
+			var doublePrecision float32
+			scan = append(scan, &doublePrecision)
+		case "NUMERIC":
+			var numeric float64
+			scan = append(scan, &numeric)
+		default:
+			var other any
+			scan = append(scan, &other)
+		}
+
+	}
+
+	for rows.Next() {
+
+		if err := rows.Scan(scan...); err != nil {
+			log.Fatal(err)
+		}
+
+		row(scan...)
+	}
 }
