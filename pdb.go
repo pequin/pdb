@@ -23,8 +23,8 @@ type Get struct {
 	offset  uint64
 }
 
-type Table struct {
-	name    string
+type Set struct {
+	to      string
 	shema   string
 	columns []string
 	values  []any
@@ -45,18 +45,17 @@ func NewConnection(user, password, host, database string) *Connection {
 	return &Connection{db}
 }
 
-func (c *Connection) Inset(table *Table) {
-
+func (c *Connection) Set(setter *Set) {
 	r := 1
 
-	sql := fmt.Sprintf("INSERT INTO %s.%s(%s) VALUES (", table.shema, table.name, strings.Join(table.columns, ", "))
+	sql := fmt.Sprintf("INSERT INTO %s.%s(%s) VALUES (", setter.shema, setter.to, strings.Join(setter.columns, ", "))
 
-	for i := 0; i < len(table.values); i++ {
+	for i := 0; i < len(setter.values); i++ {
 
 		sql += fmt.Sprintf("$%d, ", i+1)
 
 		// End row.
-		if r == len(table.columns) {
+		if r == len(setter.columns) {
 			sql = strings.TrimSuffix(sql, ", ")
 			sql += "), ("
 			r = 0
@@ -66,59 +65,9 @@ func (c *Connection) Inset(table *Table) {
 
 	sql = strings.TrimSuffix(sql, ", (") + ";"
 
-	if _, err := c.database.Exec(sql, table.values...); err != nil {
+	if _, err := c.database.Exec(sql, setter.values...); err != nil {
 		log.Fatalln(err)
 	}
-}
-
-func NewGet(from string, columns ...string) *Get {
-	return &Get{from, "public", columns, make(map[string]bool), 0, 0}
-}
-
-func (g *Get) Sort(by string, ascending bool) {
-	g.order[by] = ascending
-}
-
-func (g *Get) Limit(limit uint64) {
-	g.limit = limit
-}
-
-func (g *Get) Offset(offset uint64) {
-	g.offset = offset
-}
-
-func (g *Get) string() string {
-
-	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(g.columns, ", "), g.shema, g.from)
-
-	if len(g.order) > 0 {
-
-		sql += " ORDER BY"
-
-		for by, asc := range g.order {
-
-			sql += " " + by
-
-			if asc {
-				sql += " ASC"
-			} else {
-				sql += " DESC"
-			}
-
-			sql += ","
-		}
-
-		sql = strings.TrimSuffix(sql, ",")
-	}
-
-	if g.limit > 0 {
-		sql += fmt.Sprintf(" LIMIT %d", g.limit)
-	}
-	if g.offset > 0 {
-		sql += fmt.Sprintf(" OFFSET %d", g.offset)
-	}
-
-	return sql + ";"
 }
 
 func (c *Connection) Get(by *Get, row func(data ...any)) {
@@ -178,14 +127,60 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 	defer rows.Close()
 }
 
-// The NewInset function allocates and initializes an pointer to object of type Inset.
-func NewTable(table string, columns ...string) *Table {
-
-	return &Table{table, "public", columns, make([]any, 0)}
+func NewSet(to string, columns ...string) *Set {
+	return &Set{to, "public", columns, make([]any, 0)}
 }
 
-// Adds a new row.
-func (t *Table) AddRow(values ...any) {
+func (s *Set) Add(row ...any) {
+	s.values = append(s.values, row...)
+}
 
-	t.values = append(t.values, values...)
+func NewGet(from string, columns ...string) *Get {
+	return &Get{from, "public", columns, make(map[string]bool), 0, 0}
+}
+
+func (g *Get) Sort(by string, ascending bool) {
+	g.order[by] = ascending
+}
+
+func (g *Get) Limit(limit uint64) {
+	g.limit = limit
+}
+
+func (g *Get) Offset(offset uint64) {
+	g.offset = offset
+}
+
+func (g *Get) string() string {
+
+	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(g.columns, ", "), g.shema, g.from)
+
+	if len(g.order) > 0 {
+
+		sql += " ORDER BY"
+
+		for by, asc := range g.order {
+
+			sql += " " + by
+
+			if asc {
+				sql += " ASC"
+			} else {
+				sql += " DESC"
+			}
+
+			sql += ","
+		}
+
+		sql = strings.TrimSuffix(sql, ",")
+	}
+
+	if g.limit > 0 {
+		sql += fmt.Sprintf(" LIMIT %d", g.limit)
+	}
+	if g.offset > 0 {
+		sql += fmt.Sprintf(" OFFSET %d", g.offset)
+	}
+
+	return sql + ";"
 }
