@@ -86,6 +86,8 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 
 	for i := 0; i < len(columnType); i++ {
 
+		// fmt.Print("ttt", columnType[i].DatabaseTypeName())
+
 		switch columnType[i].DatabaseTypeName() {
 		case "INT2":
 			var smallint int16
@@ -108,7 +110,11 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 		case "TIMESTAMP":
 			var timestamp time.Time
 			scan = append(scan, &timestamp)
+		case "BOOL":
+			var boolean bool
+			scan = append(scan, &boolean)
 		default:
+			// fmt.Print("defaultdefaultdefaultdefault", columnType[i].DatabaseTypeName())
 			var other any
 			scan = append(scan, &other)
 		}
