@@ -24,7 +24,7 @@ type Get struct {
 }
 
 type Set struct {
-	to      string
+	table   string
 	shema   string
 	columns []string
 	values  []any
@@ -48,7 +48,7 @@ func NewConnection(user, password, host, database string) *Connection {
 func (c *Connection) Set(setter *Set) {
 	r := 1
 
-	sql := fmt.Sprintf("INSERT INTO %s.%s(%s) VALUES (", setter.shema, setter.to, strings.Join(setter.columns, ", "))
+	sql := fmt.Sprintf("INSERT INTO %s.%s(%s) VALUES (", setter.shema, setter.table, strings.Join(setter.columns, ", "))
 
 	for i := 0; i < len(setter.values); i++ {
 
@@ -130,8 +130,8 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 	defer rows.Close()
 }
 
-func NewSet(to string, columns ...string) *Set {
-	return &Set{to, "public", columns, make([]any, 0)}
+func NewSet(shema, table string, columns ...string) *Set {
+	return &Set{table, shema, columns, make([]any, 0)}
 }
 
 func (s *Set) Add(row ...any) {
