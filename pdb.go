@@ -138,8 +138,8 @@ func (s *Set) Add(row ...any) {
 	s.values = append(s.values, row...)
 }
 
-func NewGet(from string, columns ...string) *Get {
-	return &Get{from, "public", columns, make(map[string]bool), 0, 0}
+func NewGet(shema, table string, columns ...string) *Get {
+	return &Get{table, shema, columns, make(map[string]bool), 0, 0}
 }
 
 func (g *Get) Sort(by string, ascending bool) {
