@@ -65,9 +65,13 @@ func (c *Connection) Set(setter *Set) {
 
 	sql = strings.TrimSuffix(sql, ", (") + ";"
 
-	if _, err := c.database.Exec(sql, setter.values...); err != nil {
-		log.Fatalln(err)
+	if len(setter.values) > 0 {
+
+		if _, err := c.database.Exec(sql, setter.values...); err != nil {
+			log.Fatalln(err)
+		}
 	}
+
 }
 
 func (c *Connection) Get(by *Get, row func(data ...any)) {
