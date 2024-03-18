@@ -134,6 +134,14 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 	defer rows.Close()
 }
 
+// Create schema if not exists.
+func (c *Connection) Schema(schema string) error {
+
+	_, err := c.database.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", schema))
+
+	return err
+}
+
 func NewSet(shema, table string, columns ...string) *Set {
 	return &Set{table, shema, columns, make([]any, 0)}
 }
