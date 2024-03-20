@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,6 +30,22 @@ type Set struct {
 	shema   string
 	columns []string
 	values  []any
+}
+
+func toPsqlColumnName(name string) string {
+	return strings.ReplaceAll(strings.ToLower(regexp.MustCompile(`([A-z])([A-Z][a-z])`).ReplaceAllString(name, `$1-$2`)), "-", "_")
+}
+
+func toPsqlColumnType(field reflect.Type) string {
+
+	switch field.Kind() {
+	case reflect.Float64:
+		return "numeric"
+	case reflect.ValueOf(time.Time{}).Kind():
+		return "timestamp without time zone"
+	}
+
+	return ""
 }
 
 // Connect to the PostgreSQL database.
@@ -135,9 +153,36 @@ func (c *Connection) Get(by *Get, row func(data ...any)) {
 }
 
 // Create schema if not exists.
-func (c *Connection) Schema(schema string) error {
+func (c *Connection) Schema(name string) error {
 
-	_, err := c.database.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", schema))
+	_, err := c.database.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
+
+	return err
+}
+
+// Create schema if not exists.
+func (c *Connection) Table(schema, name string, structure any) error {
+
+	if err := c.Schema(schema); err != nil {
+		return err
+	}
+
+	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
+
+	tpe := reflect.TypeOf(structure)
+
+	for i := 0; i < tpe.NumField(); i++ {
+
+		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+
+	sql += ")"
+
+	sql = fmt.Sprintf(sql, schema, name)
+
+	_, err := c.database.Exec(sql)
 
 	return err
 }
