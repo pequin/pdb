@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/pequin/xlog"
 )
 
 type Connection struct {
@@ -161,31 +162,31 @@ func (c *Connection) Schema(name string) error {
 }
 
 // Create schema if not exists.
-func (c *Connection) Table(schema, name string, structure any) error {
+// func (c *Connection) Table(schema, name string, structure any) error {
 
-	if err := c.Schema(schema); err != nil {
-		return err
-	}
+// 	if err := c.Schema(schema); err != nil {
+// 		return err
+// 	}
 
-	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
+// 	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
 
-	tpe := reflect.TypeOf(structure)
+// 	tpe := reflect.TypeOf(structure)
 
-	for i := 0; i < tpe.NumField(); i++ {
+// 	for i := 0; i < tpe.NumField(); i++ {
 
-		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
-	}
+// 		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
+// 	}
 
-	sql = strings.TrimSuffix(sql, ", ")
+// 	sql = strings.TrimSuffix(sql, ", ")
 
-	sql += ")"
+// 	sql += ")"
 
-	sql = fmt.Sprintf(sql, schema, name)
+// 	sql = fmt.Sprintf(sql, schema, name)
 
-	_, err := c.database.Exec(sql)
+// 	_, err := c.database.Exec(sql)
 
-	return err
-}
+// 	return err
+// }
 
 func NewSet(shema, table string, columns ...string) *Set {
 	return &Set{table, shema, columns, make([]any, 0)}
@@ -244,3 +245,141 @@ func (g *Get) string() string {
 
 	return sql + ";"
 }
+
+///////////////////////////////////////////////////////
+
+type Type uint64
+
+const (
+	Bool = iota
+	Uint64
+	Float64
+	String
+	Time
+)
+
+func (t *Type) SQL() string {
+
+	switch *t {
+	case Bool:
+		return "BOOLEAN"
+	case Uint64:
+		return "BIGINT"
+	case Float64:
+		return "NUMERIC"
+	case String:
+		return "TEXT"
+	case Time:
+		return "TIMESTAMP WITHOUT TIME ZONE"
+	default:
+		return "CHAR"
+	}
+}
+
+// func typeGO(tpe string) reflect.Type {
+
+// 	switch tpe {
+// 	case "boolean":
+// 		return reflect.TypeOf(reflect.Bool)
+// 	case "numeric":
+// 		return reflect.TypeOf(reflect.Float64)
+// 	case "text":
+// 		return reflect.TypeOf(reflect.String)
+// 	case "timestamp with time zone":
+// 		return reflect.TypeOf(time.Time{})
+// 	default:
+// 		return nil
+// 	}
+// }
+
+type column struct {
+	name     string
+	datatype Type
+	// comment   string
+	// dataType  string
+	// null bool
+	rows []any //
+}
+
+func Column(name string, datatype Type) *column {
+
+	c := column{name: name, datatype: datatype}
+
+	return &c
+}
+
+type Table struct {
+	name   string // name.
+	schema string // schema.
+	// comment string
+	columns []*column
+}
+
+func (c *Connection) NewTable(schema, name string, primary *column, columns ...*column) *Table {
+
+	sql := "CREATE SCHEMA IF NOT EXISTS %[1]s; CREATE TABLE IF NOT EXISTS %[1]s.%[2]s ("
+
+	for i := 0; i < len(columns); i++ {
+
+		sql += columns[i].name + " " + columns[i].datatype.SQL() + " NOT NULL, "
+	}
+
+	if primary != nil {
+		sql += fmt.Sprintf("PRIMARY KEY (%s)", primary.name)
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql = strings.TrimSuffix(sql, " ")
+
+	sql += ")"
+	sql = fmt.Sprintf(sql, schema, name)
+
+	fmt.Println("db", sql)
+
+	_, err := c.database.Exec(sql)
+	xlog.Fatalln(err)
+
+	t := Table{name: name, schema: schema, columns: columns}
+
+	return &t
+}
+
+func (t *Table) Add(data ...any) {
+
+	for i := 0; i < len(data); i++ {
+
+		t.columns[i].rows = append(t.columns[i].rows, data[i])
+	}
+
+}
+
+// func (t *Table) AddRow(columns ...any) {
+
+// }
+
+// Create schema if not exists.
+// func (c *Connection) Table(schema, name string, structure any) error {
+
+// 	if err := c.Schema(schema); err != nil {
+// 		return err
+// 	}
+
+// 	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
+
+// 	tpe := reflect.TypeOf(structure)
+
+// 	for i := 0; i < tpe.NumField(); i++ {
+
+// 		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
+// 	}
+
+// 	sql = strings.TrimSuffix(sql, ", ")
+
+// 	sql += ")"
+
+// 	sql = fmt.Sprintf(sql, schema, name)
+
+// 	_, err := c.database.Exec(sql)
+
+// 	return err
+// }
