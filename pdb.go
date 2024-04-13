@@ -4,47 +4,40 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/pequin/xlog"
 )
 
+type Type uint64
+
 type Connection struct {
 	database *sql.DB
 }
 
-// type Get struct {
-// 	from    string
-// 	shema   string
-// 	columns []string
-// 	order   map[string]bool
-// 	limit   uint64
-// 	offset  uint64
-// }
+type column struct {
+	name     string
+	datatype Type
+}
 
-// type Set struct {
-// 	table   string
-// 	shema   string
-// 	columns []string
-// 	values  []any
-// }
+type Table struct {
+	name       string
+	schema     string
+	connection *Connection
+	columns    []*column
+	data       [][]any
+}
 
-// func toPsqlColumnName(name string) string {
-// 	return strings.ReplaceAll(strings.ToLower(regexp.MustCompile(`([A-z])([A-Z][a-z])`).ReplaceAllString(name, `$1-$2`)), "-", "_")
-// }
-
-// func toPsqlColumnType(field reflect.Type) string {
-
-// 	switch field.Kind() {
-// 	case reflect.Float64:
-// 		return "numeric"
-// 	case reflect.ValueOf(time.Time{}).Kind():
-// 		return "timestamp without time zone"
-// 	}
-
-// 	return ""
-// }
+const (
+	Bool = iota
+	Int64
+	Float64
+	String
+	Time
+)
 
 // Connect to the PostgreSQL database.
 func NewConnection(user, password, host, database string) *Connection {
@@ -61,252 +54,78 @@ func NewConnection(user, password, host, database string) *Connection {
 	return &Connection{db}
 }
 
-// func (c *Connection) Set(setter *Set) {
-// 	r := 1
-
-// 	sql := fmt.Sprintf("INSERT INTO %s.%s(%s) VALUES (", setter.shema, setter.table, strings.Join(setter.columns, ", "))
-
-// 	for i := 0; i < len(setter.values); i++ {
-
-// 		sql += fmt.Sprintf("$%d, ", i+1)
-
-// 		// End row.
-// 		if r == len(setter.columns) {
-// 			sql = strings.TrimSuffix(sql, ", ")
-// 			sql += "), ("
-// 			r = 0
-// 		}
-// 		r++
-// 	}
-
-// 	sql = strings.TrimSuffix(sql, ", (") + ";"
-
-// 	if len(setter.values) > 0 {
-
-// 		if _, err := c.database.Exec(sql, setter.values...); err != nil {
-// 			log.Fatalln(err)
-// 		}
-// 	}
-
-// }
-
-// func (c *Connection) Get(by *Get, row func(data ...any)) {
-
-// 	scan := make([]any, 0, len(by.columns))
-
-// 	rows, err := c.database.Query(by.string())
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-
-// 	columnType, error := rows.ColumnTypes()
-// 	if error != nil {
-// 		log.Fatalln(error)
-// 	}
-
-// 	for i := 0; i < len(columnType); i++ {
-
-// 		switch columnType[i].DatabaseTypeName() {
-// 		case "INT2":
-// 			var smallint int16
-// 			scan = append(scan, &smallint)
-// 		case "INT4":
-// 			var integer int32
-// 			scan = append(scan, &integer)
-// 		case "INT8":
-// 			var bigint int64
-// 			scan = append(scan, &bigint)
-// 		case "FLOAT4":
-// 			var real float32
-// 			scan = append(scan, &real)
-// 		case "FLOAT8":
-// 			var doublePrecision float32
-// 			scan = append(scan, &doublePrecision)
-// 		case "NUMERIC":
-// 			var numeric float64
-// 			scan = append(scan, &numeric)
-// 		case "TIMESTAMP":
-// 			var timestamp time.Time
-// 			scan = append(scan, &timestamp)
-// 		case "BOOL":
-// 			var boolean bool
-// 			scan = append(scan, &boolean)
-// 		default:
-// 			var other any
-// 			scan = append(scan, &other)
-// 		}
-
-// 	}
-
-// 	for rows.Next() {
-
-// 		if err := rows.Scan(scan...); err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		row(scan...)
-// 	}
-
-// 	defer rows.Close()
-// }
-
-// // Create schema if not exists.
-// func (c *Connection) Schema(name string) error {
-
-// 	_, err := c.database.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
-
-// 	return err
-// }
-
-// // Create schema if not exists.
-// // func (c *Connection) Table(schema, name string, structure any) error {
-
-// // 	if err := c.Schema(schema); err != nil {
-// // 		return err
-// // 	}
-
-// // 	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
-
-// // 	tpe := reflect.TypeOf(structure)
-
-// // 	for i := 0; i < tpe.NumField(); i++ {
-
-// // 		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
-// // 	}
-
-// // 	sql = strings.TrimSuffix(sql, ", ")
-
-// // 	sql += ")"
-
-// // 	sql = fmt.Sprintf(sql, schema, name)
-
-// // 	_, err := c.database.Exec(sql)
-
-// // 	return err
-// // }
-
-// func NewSet(shema, table string, columns ...string) *Set {
-// 	return &Set{table, shema, columns, make([]any, 0)}
-// }
-
-// func (s *Set) Add(row ...any) {
-// 	s.values = append(s.values, row...)
-// }
-
-// func NewGet(shema, table string, columns ...string) *Get {
-// 	return &Get{table, shema, columns, make(map[string]bool), 0, 0}
-// }
-
-// func (g *Get) Sort(by string, ascending bool) {
-// 	g.order[by] = ascending
-// }
-
-// func (g *Get) Limit(limit uint64) {
-// 	g.limit = limit
-// }
-
-// func (g *Get) Offset(offset uint64) {
-// 	g.offset = offset
-// }
-
-// func (g *Get) string() string {
-
-// 	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(g.columns, ", "), g.shema, g.from)
-
-// 	if len(g.order) > 0 {
-
-// 		sql += " ORDER BY"
-
-// 		for by, asc := range g.order {
-
-// 			sql += " " + by
-
-// 			if asc {
-// 				sql += " ASC"
-// 			} else {
-// 				sql += " DESC"
-// 			}
-
-// 			sql += ","
-// 		}
-
-// 		sql = strings.TrimSuffix(sql, ",")
-// 	}
-
-// 	if g.limit > 0 {
-// 		sql += fmt.Sprintf(" LIMIT %d", g.limit)
-// 	}
-// 	if g.offset > 0 {
-// 		sql += fmt.Sprintf(" OFFSET %d", g.offset)
-// 	}
-
-// 	return sql + ";"
-// }
-
-///////////////////////////////////////////////////////
-
-type Type uint64
-
-const (
-	Bool = iota
-	Uint64
-	Float64
-	String
-	Time
-)
-
 func (t *Type) SQL() string {
 
 	switch *t {
 	case Bool:
-		return "BOOLEAN"
-	case Uint64:
-		return "BIGINT"
+		return "BOOL"
+	case Int64:
+		return "INT8"
 	case Float64:
 		return "NUMERIC"
 	case String:
 		return "TEXT"
 	case Time:
 		return "TIMESTAMP WITHOUT TIME ZONE"
-	default:
-		return "CHAR"
 	}
+
+	xlog.Fatalln("Type is not found.")
+
+	return ""
 }
 
-// func typeGO(tpe string) reflect.Type {
+func typeFromSQL(tpe *sql.ColumnType) *Type {
 
-// 	switch tpe {
-// 	case "boolean":
-// 		return reflect.TypeOf(reflect.Bool)
-// 	case "numeric":
-// 		return reflect.TypeOf(reflect.Float64)
-// 	case "text":
-// 		return reflect.TypeOf(reflect.String)
-// 	case "timestamp with time zone":
-// 		return reflect.TypeOf(time.Time{})
-// 	default:
-// 		return nil
-// 	}
-// }
+	var t Type
 
-type column struct {
-	name     string
-	datatype Type
+	switch tpe.DatabaseTypeName() {
+	case "BOOL":
+		t = Bool
+	case "INT8":
+		t = Int64
+	case "NUMERIC":
+		t = Float64
+	case "TEXT":
+		t = String
+	case "TIMESTAMP":
+		t = Time
+	default:
+		xlog.Fatallf("Type %s is not found.", tpe.DatabaseTypeName())
+	}
+
+	return &t
 }
 
-type Table struct {
-	name       string
-	schema     string
-	connection *Connection
-	columns    []column
-	data       [][]any
+func (t *Type) Pointer() any {
+
+	switch *t {
+	case Bool:
+		var v bool
+		return &v
+	case Int64:
+		var v int64
+		return &v
+	case Float64:
+		var v float64
+		return &v
+	case String:
+		var v string
+		return &v
+	case Time:
+		var v time.Time
+		return &v
+	}
+
+	xlog.Fatalln("Type is not found.")
+
+	return nil
 }
 
 func Column(name string, datatype Type) column {
 	return column{name: name, datatype: datatype}
 }
 
-func (c *Connection) NewTable(schema, name string, primary *column, columns ...column) *Table {
+func (c *Connection) Table(schema, name string, columns ...*column) *Table {
 
 	sql := "CREATE SCHEMA IF NOT EXISTS %[1]s; CREATE TABLE IF NOT EXISTS %[1]s.%[2]s (%[3]s)"
 
@@ -327,6 +146,12 @@ func (c *Connection) NewTable(schema, name string, primary *column, columns ...c
 }
 
 func (t *Table) AddRow(data ...any) {
+
+	for cID := 0; cID < len(data); cID++ {
+		if reflect.TypeOf(data[cID]) == reflect.TypeOf(time.Time{}) {
+			data[cID] = data[cID].(time.Time).UTC()
+		}
+	}
 
 	if len(t.columns) == len(data) {
 		t.data = append(t.data, data)
@@ -376,33 +201,66 @@ func (t *Table) Commit() {
 	t.data = t.data[:0]
 }
 
-// func (t *Table) AddRow(columns ...any) {
+type Select struct {
+	table   *Table
+	columns []*column
+	// order   map[*column]bool
+	// ORDER BY
+}
 
-// }
+func (t *Table) Select(columns ...*column) *Select {
 
-// Create schema if not exists.
-// func (c *Connection) Table(schema, name string, structure any) error {
+	slt := Select{table: t}
 
-// 	if err := c.Schema(schema); err != nil {
-// 		return err
-// 	}
+	// Is match.
+	ism := false
 
-// 	sql := "CREATE TABLE IF NOT EXISTS %s.%s ("
+	for cID := 0; cID < len(columns); cID++ {
 
-// 	tpe := reflect.TypeOf(structure)
+		ism = false
 
-// 	for i := 0; i < tpe.NumField(); i++ {
+		for id := 0; !ism && id < len(t.columns); id++ {
+			ism = columns[cID] == t.columns[id]
+		}
 
-// 		sql += toPsqlColumnName(tpe.Field(i).Name) + " " + toPsqlColumnType(tpe.Field(i).Type) + " NOT NULL, "
-// 	}
+		if ism {
+			slt.columns = append(slt.columns, columns[cID])
+		} else {
+			xlog.Fatallf("Column \"%s\" does not match the one specified in the table.", columns[cID].name)
+		}
 
-// 	sql = strings.TrimSuffix(sql, ", ")
+	}
 
-// 	sql += ")"
+	return &slt
+}
 
-// 	sql = fmt.Sprintf(sql, schema, name)
+func (s *Select) Rows(row func(columns ...any)) {
 
-// 	_, err := c.database.Exec(sql)
+	cls := make([]string, len(s.columns))
 
-// 	return err
-// }
+	for i := 0; i < len(s.columns); i++ {
+		cls[i] = s.columns[i].name
+	}
+
+	sql := fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(cls, ", "), s.table.schema, s.table.name)
+
+	rws, err := s.table.connection.database.Query(sql)
+	xlog.Fatalln(err)
+	defer s.table.connection.database.Close()
+	defer rws.Close()
+
+	// Column types.
+	cts, err := rws.ColumnTypes()
+	xlog.Fatalln(err)
+
+	san := make([]any, len(cts))
+
+	for i := 0; i < len(cts); i++ {
+		san[i] = typeFromSQL(cts[i]).Pointer()
+	}
+
+	for rws.Next() {
+		xlog.Fatalln(rws.Scan(san...))
+		row(san...)
+	}
+}
