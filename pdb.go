@@ -34,6 +34,7 @@ type Connection struct {
 
 type column struct {
 	name     string
+	primary  bool
 	datatype Type
 }
 
@@ -135,21 +136,37 @@ func (t *Type) Pointer() any {
 	return nil
 }
 
-func Column(name string, datatype Type) column {
-	return column{name: name, datatype: datatype}
+func Column(name string, datatype Type, primary bool) column {
+	return column{name: name, primary: primary, datatype: datatype}
 }
 
 func (c *Connection) Table(schema, name string, columns ...*column) *Table {
 
-	sql := "CREATE SCHEMA IF NOT EXISTS %[1]s; CREATE TABLE IF NOT EXISTS %[1]s.%[2]s (%[3]s)"
+	sql := "CREATE SCHEMA IF NOT EXISTS %[1]s; CREATE TABLE IF NOT EXISTS %[1]s.%[2]s (%[3]s%[4]s)"
 
+	// Colums.
 	cls := make([]string, len(columns))
+
+	// Primary colums.
+	pcs := make([]string, 0)
+
+	// Primary.
+	pmy := ""
 
 	for i := 0; i < len(columns); i++ {
 		cls[i] = fmt.Sprintf("%s %s NOT NULL", columns[i].name, columns[i].datatype.SQL())
+
+		if columns[i].primary {
+			pcs = append(pcs, columns[i].name)
+		}
 	}
 
-	sql = fmt.Sprintf(sql, schema, name, strings.Join(cls, ", "))
+	// Primary.
+	if len(pcs) > 0 {
+		pmy = fmt.Sprintf(", PRIMARY KEY(%s)", strings.Join(pcs, ", "))
+	}
+
+	sql = fmt.Sprintf(sql, schema, name, strings.Join(cls, ", "), pmy)
 
 	_, err := c.database.Exec(sql)
 	xlog.Fatalln(err)
