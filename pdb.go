@@ -226,8 +226,12 @@ func (t *Table) Commit() {
 
 	sql := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES %s", t.schema, t.name, strings.Join(cns, ","), strings.Join(rws, ","))
 
-	_, err := t.connection.database.Exec(sql, vls...)
-	xlog.Fatalln(err)
+	fmt.Println("dbf", sql, vls)
+
+	if len(vls) > 0 {
+		_, err := t.connection.database.Exec(sql, vls...)
+		xlog.Fatalln(err)
+	}
 
 	t.data = t.data[:0]
 }
@@ -275,7 +279,6 @@ func (s *Select) Rows(row func(columns ...any)) {
 
 	rws, err := s.table.connection.database.Query(sql)
 	xlog.Fatalln(err)
-	defer s.table.connection.database.Close()
 	defer rws.Close()
 
 	// Column types.
