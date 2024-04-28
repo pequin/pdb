@@ -25,61 +25,100 @@ limitations under the License.
 
 type table struct {
 	nam string   // Table name.
-	sch *Schema  // Table Schema.
+	isi bool     // The table has already been initialized.
+	sch *schema  // Schema.
 	col []column // Table columns.
-	pri []column // Primary columns.
-	isi bool     // The base is initialized.
+	buf []any    // Rows for inset buffer.
+}
+
+func (t *table) Select(where *where, order *order) {
+
+	// Columns.
+	col := make([]column, 0)
+
+	// Pointers.
+	poi := make([]any, 0)
+
+	// Columns names.
+	nam := make([]string, 0)
+
+	for i := 0; i < len(t.col); i++ {
+		if t.col[i].subscribed() {
+			col = append(col, t.col[i])
+			poi = append(poi, t.col[i].pointer())
+			nam = append(nam, t.col[i].name())
+		}
+	}
+
+	// Where.
+	whe := ""
+	if where != nil {
+		whe = " " + where.sql()
+	}
+
+	// Order.
+	ord := ""
+	if order != nil {
+		ord = " " + order.sql()
+	}
+
+	t.create()
+
+	row, err := t.sch.dat.trx.Query(fmt.Sprintf("SELECT %s FROM %s.%s%s%s;", strings.Join(nam, ", "), t.sch.nam, t.nam, whe, ord))
+	xlog.Fatalln(err)
+	defer row.Close()
+
+	for row.Next() {
+		xlog.Fatalln(row.Scan(poi...))
+
+		for i := 0; i < len(col); i++ {
+			col[i].hook()
+		}
+	}
 }
 
 // Creates a schema and table in the database if they have not been created previously.
 func (t *table) create() {
 
-	sql := make([]string, 0)
-
-	if !t.sch.isi {
-		sql = append(sql, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", t.sch.nam))
-	}
-
 	if !t.isi {
+		col := make([]string, len(t.col)) // Columns.
 
-		// Columns.
-		col := make([]string, len(t.col))
-
+		pri := make([]string, 0) // Primary columns.
+		prk := ""                // Primary keys.
 		for i := 0; i < len(t.col); i++ {
-			col[i] = t.col[i].Name() + " " + t.col[i].Type() + " NOT NULL"
+			col[i] = t.col[i].name() + " " + t.col[i].sql() + " NOT NULL"
+			if t.col[i].primary() {
+				pri = append(pri, t.col[i].name())
+			}
 		}
 
-		// Primary key.
-		// pri := make([]string, len(t.pri))
-		prk := t.columnPrimaryNames()
-		pri := ""
-
-		if len(t.pri) > 0 {
-			pri = fmt.Sprintf(", PRIMARY KEY(%s)", strings.Join(prk, ", "))
+		if len(pri) > 0 {
+			prk = fmt.Sprintf(", PRIMARY KEY(%s)", strings.Join(pri, ", "))
 		}
 
-		sql = append(sql, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (%s%s);", t.sch.nam, t.nam, strings.Join(col, ", "), pri))
+		t.sch.create()
+
+		_, err := t.sch.dat.trx.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (%s%s);", t.sch.nam, t.nam, strings.Join(col, ", "), prk))
+		xlog.Fatalln(err)
+
+		t.isi = true
 	}
-
-	_, err := t.sch.dbc.con.Exec(strings.Join(sql, " "))
-	xlog.Fatalln(err)
 }
 
-// Set column as base.
-func (t *table) addColumn(col column) {
+// Adds a column.
+func (t *table) associate(col column) {
+
 	if t.isi {
 		xlog.Fatallf("Can't add column to an already initialized table: %s.", t.nam)
-	} else if t.isColumnExist(col) {
-		xlog.Fatallf("The column \"%s\" has already been added as a base column to the table: %s.", col.Name(), t.nam)
-	} else if t.isColumnNameExist(col.Name()) {
-		xlog.Fatallf("A column named \"%s\" already exists in the table: %s.", col.Name(), t.nam)
-	} else {
-		t.col = append(t.col, col)
+	} else if t.isAssociated(col) {
+		xlog.Fatallf("A column named \"%s\" already exists in the table: %s.", col.name(), t.nam)
 	}
+
+	t.col = append(t.col, col)
 }
 
 // Returns this column is exist in the table.
-func (t *table) isColumnExist(col column) bool {
+func (t *table) isAssociated(col column) bool {
 
 	ist := false
 
@@ -89,247 +128,63 @@ func (t *table) isColumnExist(col column) bool {
 	return ist
 }
 
-// Returns column names.
-func (t *table) columnNames() []string {
-
-	col := make([]string, len(t.col))
-
-	for i := 0; i < len(t.col); i++ {
-		col[i] = t.col[i].Name()
-	}
-	return col
-}
-
-// Returns the names of the primary columns.
-func (t *table) columnPrimaryNames() []string {
-
-	col := make([]string, len(t.pri))
-
-	for i := 0; i < len(t.pri); i++ {
-		col[i] = t.pri[i].Name()
-	}
-	return col
-}
-
-// Returns true if a column with this name exists.
-func (t *table) isColumnNameExist(name string) bool {
-
-	ist := false
-
-	for i := 0; !ist && i < len(t.col); i++ {
-		ist = name == t.col[i].Name()
-	}
-
-	return ist
-}
-
-// Returns true if the column is primary.
-func (t *table) isColumnPrimary(col column) bool {
-
-	ist := false
-
-	for i := 0; !ist && i < len(t.pri); i++ {
-		ist = col == t.pri[i]
-	}
-	return ist
-}
-
-// Sets primary columns.
-func (t *table) Primary(columns ...column) {
-
-	if t.isi {
-		xlog.Fatallf("Can't add primary columns to an already initialized table: %s.", t.nam)
-	} else {
-
-		for i := 0; i < len(columns); i++ {
-
-			if !t.isColumnExist(columns[i]) {
-				xlog.Fatallf("Column \"%s\" is not associated with table: %s.", columns[i].Name(), t.nam)
-			}
-
-			if t.isColumnPrimary(columns[i]) {
-				xlog.Fatallf("Column \"%s\" already added as primary to the table: %s.", columns[i].Name(), t.nam)
-			}
-
-			t.pri = append(t.pri, columns[i])
-		}
-	}
-}
-
-// Creates an buffer [row][column].
-func (t *table) buffer() [][]any {
-
-	row := 0
+// Returns the index of a column in a table.
+func (t *table) index(col column) int {
 
 	for i := 0; i < len(t.col); i++ {
 
-		len := t.col[i].size()
-
-		if row < len {
-			row = len
+		if col == t.col[i] {
+			return i
 		}
+
 	}
 
-	buf := make([][]any, row)
+	xlog.Fatallf("Column \"%s\" is not found.", col.name())
 
-	for i := 0; i < row; i++ {
-		buf[i] = make([]any, len(t.col))
-	}
-
-	// Parse colimns.
-	for cid := 0; cid < len(t.col); cid++ {
-
-		b := t.col[cid].buffer()
-
-		// Parse rows.
-		for rid := 0; rid < len(b); rid++ {
-			buf[rid][cid] = b[rid]
-		}
-	}
-
-	return buf
+	return 0
 }
 
-func (t *table) Insert() {
+func (t *table) insert(col column, val any) {
 
-	// Previously added data.
-	buf := t.buffer()
+	// Column index.
+	idx := t.index(col)
 
-	// Values for insert.
-	val := make([]any, 0, len(t.col)*len(buf))
+	// Initialize buffer.
+	if len(t.buf) == 0 {
+		t.buf = make([]any, len(t.col))
+	}
 
 	// String of values.
-	stv := make([]string, len(buf))
+	str := make([]string, len(t.col))
 
-	// Value id.
-	vid := 1
-	for rid := 0; rid < len(buf); rid++ {
-
-		// Row data.
-		row := make([]string, len(t.col))
-
-		for cid := 0; cid < len(t.col); cid++ {
-
-			if buf[rid][cid] == nil {
-				xlog.Fatallf("Error adding data to table \"%s\", in row \"%d\" is missing value for column \"%s\".", t.nam, rid, t.col[cid].Name())
-			}
-
-			row[cid] = fmt.Sprintf("$%d", vid)
-
-			val = append(val, buf[rid][cid])
-
-			vid++
-		}
-
-		stv[rid] = "(" + strings.Join(row, ", ") + ")"
+	// Column names.
+	nam := make([]string, len(t.col))
+	for i := 0; i < len(t.col); i++ {
+		nam[i] = t.col[i].name()
+		str[i] = fmt.Sprintf("$%d", i+1)
 	}
 
-	if len(val) == 0 {
-		xlog.Fatallf("Missing values in buffer to insert table: %s.", t.nam)
-	}
+	// Save value to buffer.
+	t.buf[idx] = val
 
-	t.create()
-
-	_, err := t.sch.dbc.con.Exec(fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES %s", t.sch.nam, t.nam, strings.Join(t.columnNames(), ", "), strings.Join(stv, ", "))+";", val...)
-	xlog.Fatalln(err)
-}
-
-type getter struct {
-	tab *table
-	col []column
-}
-
-// Returns a pointer to an object getter.
-func (t *table) Select(columns ...column) *getter {
-
-	t.create()
-
-	// Columns.
-	col := make([]column, 0)
-
-	if len(columns) == 0 {
-		col = append(col, t.col...)
-	} else {
-		for i := 0; i < len(columns); i++ {
-			if !t.isColumnExist(columns[i]) {
-				xlog.Fatallf("When calling select, a column \"%s\" is not associated with the table: %s.", columns[i].Name(), t.nam)
-			}
-		}
-		col = append(col, columns...)
-	}
-
-	return &getter{tab: t, col: col}
-}
-
-func (g *getter) Run() {
-
-	// Pointers.
-	poi := make([]any, len(g.col))
-
-	// Columns names.
-	col := make([]string, len(g.col))
-
-	for i := 0; i < len(g.col); i++ {
-		poi[i] = g.col[i].pointer()
-		col[i] = g.col[i].Name()
-	}
-
-	sql := fmt.Sprintf("SELECT %s FROM %s.%s ORDER BY pair ASC;", strings.Join(col, ", "), g.tab.sch.nam, g.tab.nam)
-	fmt.Println("Select:", sql)
-
-	row, err := g.tab.sch.dbc.con.Query(sql)
-	xlog.Fatalln(err)
-	defer row.Close()
-
-	for row.Next() {
-		xlog.Fatalln(row.Scan(poi...))
-
-		for i := 0; i < len(g.col); i++ {
-			g.col[i].hook()
+	// Count of filled columns.
+	cfc := 0
+	for i := 0; i < len(t.col); i++ {
+		if t.buf[i] != nil {
+			cfc++
 		}
 	}
 
-	xlog.Fatalln(row.Err())
+	if cfc == len(t.col) {
 
+		t.create()
+
+		_, err := t.sch.dat.trx.Exec(fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s)", t.sch.nam, t.nam, strings.Join(nam, ", "), strings.Join(str, ", "))+";", t.buf...)
+		xlog.Fatalln(err)
+
+		// Clear buffer.
+		for i := 0; i < len(t.col); i++ {
+			t.buf[i] = nil
+		}
+	}
 }
-
-// func (t *Table) Init() {
-
-// if t.isi {
-
-// }
-
-// if !t.isInit {
-// 	sql := "CREATE SCHEMA IF NOT EXISTS %[1]s; CREATE TABLE IF NOT EXISTS %[1]s.%[2]s (%[3]s%[4]s)"
-
-// 	// Colums.
-// 	cls := make([]string, len(t.columns))
-
-// 	// Primary colums.
-// 	pcs := make([]string, 0)
-
-// 	// Primary.
-// 	pmy := ""
-
-// 	for i := 0; i < len(t.columns); i++ {
-// 		cls[i] = fmt.Sprintf("%s %s NOT NULL", t.columns[i].Name(), t.columns[i].Type())
-
-// 		if t.columns[i].Primary() {
-// 			pcs = append(pcs, t.columns[i].Name())
-// 		}
-// 	}
-
-// 	// Primary.
-// 	if len(pcs) > 0 {
-// 		pmy = fmt.Sprintf(", PRIMARY KEY(%s)", strings.Join(pcs, ", "))
-// 	}
-
-// 	sql = fmt.Sprintf(sql, t.schema.name, t.name, strings.Join(cls, ", "), pmy)
-
-// 	_, err := t.schema.connection.database.Exec(sql)
-// 	xlog.Fatalln(err)
-
-// 	t.isInit = true
-
-// }
-// }

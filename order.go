@@ -1,7 +1,7 @@
 package pdb
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/pequin/xlog"
 )
@@ -22,22 +22,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type schema struct {
-	nam string    // Schema name.
-	iss bool      // The schema has already been initialized.
-	dat *database // Database connection.
+type order struct {
+	tab *table   // Table.
+	asc bool     // Sort alphabetically.
+	col []string // Names of columns.
 }
 
-func (s *schema) Table(name string) *table {
-	tab := table{nam: name, sch: s}
-	return &tab
-}
+func (o *order) add(columns ...column) {
 
-func (s *schema) create() {
-
-	if !s.iss {
-		_, err := s.dat.trx.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", s.nam))
-		xlog.Fatalln(err)
-		s.iss = true
+	for i := 0; i < len(columns); i++ {
+		if o.tab.isAssociated(columns[i]) {
+			o.col = append(o.col, columns[i].name())
+		} else {
+			xlog.Fatallf("The column \"%s\" is not associated with the table: %s.", columns[i].name(), columns[i].table().nam)
+		}
 	}
+}
+
+func (o *order) sql() string {
+
+	asc := " ASC"
+	if !o.asc {
+		asc = " DESC"
+	}
+
+	return "ORDER BY " + strings.Join(o.col, ", ") + asc
 }

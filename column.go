@@ -1,7 +1,11 @@
 package pdb
 
 import (
+	"fmt"
+	"strings"
 	"time"
+
+	"github.com/pequin/xlog"
 )
 
 /*
@@ -21,16 +25,13 @@ limitations under the License.
 */
 
 type column interface {
-	Name() string // Returns name for this column.
-	Type() string // Returns sql type for this column.
-	// Update()
-	// value() any
-
-	buffer() []any // Returns the rows from insert buffer.
-
-	size() int    // Returns the len of the buffer.
-	pointer() any // Returns a pointer to a buffer variable.
-	hook()        // Calling a custom function for select.
+	table() *table
+	name() string     // Returns name for this column.
+	primary() bool    // Returns true if this column is as primary.
+	sql() string      // Returns sql type for this column.
+	pointer() any     // Returns a pointer to a buffer variable.
+	hook()            // Calling a custom function for select.
+	subscribed() bool // Returns whether this column is subscribed to select.
 }
 
 /*
@@ -39,29 +40,29 @@ partially implements the interface column.
 */
 
 type col struct {
-	nam string // Colimn name.
-	buf []any  // Rows for inset buffer.
+	nam string // Column name.
+	pri bool   // Is as primary.
+	tab *table // Table.
+}
+
+// Sets a column as primary.
+func (c *col) Primary() {
+	c.pri = true
+}
+
+// Returns the associated table.
+func (c *col) table() *table {
+	return c.tab
 }
 
 // Returns name for this column.
-func (c *col) Name() string {
+func (c *col) name() string {
 	return c.nam
 }
 
-// Returns the len of the buffer.
-func (c *col) size() int {
-	return len(c.buf)
-}
-
-// Returns the rows from insert buffer.
-func (c *col) buffer() []any {
-	defer c.clear()
-	return c.buf
-}
-
-// Clear insert buffer.
-func (c *col) clear() {
-	c.buf = nil
+// Returns true if this column is as primary.
+func (c *col) primary() bool {
+	return c.pri
 }
 
 /*
@@ -71,62 +72,116 @@ partially implements the interface "column".
 */
 
 type numeric struct {
-	col                       // Base colimn.
+	col                       // Base column.
 	buf float64               // Row for select buffer.
 	row func(numeric float64) // Calling a custom function for select.
 }
 
 // Creates object type float64 corresponding in sql as "NUMERIC".
 func (t *table) Float64(name string, row func(numeric float64)) *numeric {
-	typ := &numeric{col: col{nam: name}, row: row}
-	t.addColumn(typ)
+	typ := &numeric{col: col{nam: name, tab: t}, row: row}
+	t.associate(typ)
 	return typ
 }
 
+// Adds a row to the buffer before inserting.
+func (n *numeric) Insert(value float64) {
+	n.tab.insert(n, value)
+}
+
+// Updates the value in a column.
+func (n *numeric) Update(value float64, where *where) {
+
+	whe := ""
+	if where != nil {
+		whe = " " + where.sql()
+	}
+	_, err := n.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", n.tab.sch.nam, n.tab.nam, n.nam, n.format(value), whe))
+	xlog.Fatalln(err)
+}
+
+// Order by asc.
+func (n *numeric) Asc(columns ...column) *order {
+	o := &order{asc: true, tab: n.tab}
+	o.add(n)
+	o.add(columns...)
+	return o
+}
+
+// Order by desc.
+func (n *numeric) Desc(columns ...column) *order {
+	o := &order{asc: false, tab: n.tab}
+	o.add(n)
+	o.add(columns...)
+	return o
+}
+
+// Returns a pointer to object where with operator "=" as equal.
+func (n *numeric) Equal(value float64) *where {
+	return &where{col: n, ope: "=", val: n.format(value)}
+}
+
+// Returns a pointer to object where with operator "IN".
+func (n *numeric) In(values ...float64) *where {
+
+	str := make([]string, len(values))
+
+	for i := 0; i < len(values); i++ {
+		str[i] = n.format(values[i])
+	}
+
+	return &where{col: n, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+}
+
+// Returns a pointer to object where with operator ">" 	greater than.
+func (n *numeric) Greater(value float64) *where {
+	return &where{col: n, ope: ">", val: n.format(value)}
+}
+
+// Returns a pointer to object where with operator "<" less than.
+func (n *numeric) Less(value float64) *where {
+	return &where{col: n, ope: "<", val: n.format(value)}
+}
+
+// Returns a pointer to object where with operator ">=" greater than or equal.
+func (n *numeric) GreaterOrEqual(value float64) *where {
+	return &where{col: n, ope: ">=", val: n.format(value)}
+}
+
+// Returns a pointer to object where with operator "<=" less than or equal.
+func (n *numeric) LessOrEqual(value float64) *where {
+	return &where{col: n, ope: "<=", val: n.format(value)}
+}
+
+// Returns a pointer to object where with operator "<> or !=" not equal.
+func (n *numeric) NotEqual(value float64) *where {
+	return &where{col: n, ope: "<> or !=", val: n.format(value)}
+}
+
+func (n *numeric) format(value float64) string {
+	return fmt.Sprintf("'%f'", value)
+}
+
 // Returns sql type for this column.
-func (numeric) Type() string {
+func (numeric) sql() string {
 	return "NUMERIC"
 }
-
-// Returns a pointer to an object where.
-// func (t *text) Where(value float64) *where {
-// 	return &where{col: t.nam, val: strconv.FormatFloat(value, 'E', -1, 64)}
-// }
-
-// // Updates a value in an object where.
-// func (t *text) Update(where *where, value float64) {
-// 	where.val = value
-// }
-
-// Adds a row to the buffer before inserting.
-func (n *numeric) Row(value float64) {
-	n.col.buf = append(n.col.buf, value)
-}
-
-//	func (n *numeric) value() any {
-//		return n.data
-//	}
-//
-//	func (n *numeric) pointer() any {
-//		return &n.data
-//	}
-// func (n *numeric) buffer() []any {
-// 	defer n.clearBuffer()
-// 	return n.rows
-// }
-// func (n *numeric) clearBuffer() {
-// 	n.rows = nil
-// }
 
 // Returns a pointer to a buffer variable.
 func (n *numeric) pointer() any {
 	return &n.buf
 }
 
+// Calling a custom function for select.
 func (n *numeric) hook() {
 	if n.row != nil {
 		n.row(n.buf)
 	}
+}
+
+// Returns whether this column is subscribed to select.
+func (n *numeric) subscribed() bool {
+	return n.row != nil
 }
 
 /*
@@ -136,62 +191,116 @@ partially implements the interface "column".
 */
 
 type bigint struct {
-	col                   // Base colimn.
+	col                   // Base column.
 	buf int64             // Row for select buffer.
 	row func(value int64) // Calling a custom function for select.
 }
 
 // Creates object type int64 corresponding in sql as int8.
 func (t *table) Int64(name string, row func(value int64)) *bigint {
-	typ := &bigint{col: col{nam: name}, row: row}
-	t.addColumn(typ)
+	typ := &bigint{col: col{nam: name, tab: t}, row: row}
+	t.associate(typ)
 	return typ
 }
 
+// Adds a row to the buffer before inserting.
+func (b *bigint) Insert(value int64) {
+	b.tab.insert(b, value)
+}
+
+// Updates the value in a column.
+func (b *bigint) Update(value int64, where *where) {
+
+	whe := ""
+	if where != nil {
+		whe = " " + where.sql()
+	}
+	_, err := b.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", b.tab.sch.nam, b.tab.nam, b.nam, b.format(value), whe))
+	xlog.Fatalln(err)
+}
+
+// Order by asc.
+func (b *bigint) Asc(columns ...column) *order {
+	o := &order{asc: true, tab: b.tab}
+	o.add(b)
+	o.add(columns...)
+	return o
+}
+
+// Order by desc.
+func (b *bigint) Desc(columns ...column) *order {
+	o := &order{asc: false, tab: b.tab}
+	o.add(b)
+	o.add(columns...)
+	return o
+}
+
+// Returns a pointer to object where with operator "=" as equal.
+func (b *bigint) Equal(value int64) *where {
+	return &where{col: b, ope: "=", val: b.format(value)}
+}
+
+// Returns a pointer to object where with operator "IN".
+func (b *bigint) In(values ...int64) *where {
+
+	str := make([]string, len(values))
+
+	for i := 0; i < len(values); i++ {
+		str[i] = b.format(values[i])
+	}
+
+	return &where{col: b, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+}
+
+// Returns a pointer to object where with operator ">" 	greater than.
+func (b *bigint) Greater(value int64) *where {
+	return &where{col: b, ope: ">", val: b.format(value)}
+}
+
+// Returns a pointer to object where with operator "<" less than.
+func (b *bigint) Less(value int64) *where {
+	return &where{col: b, ope: "<", val: b.format(value)}
+}
+
+// Returns a pointer to object where with operator ">=" greater than or equal.
+func (b *bigint) GreaterOrEqual(value int64) *where {
+	return &where{col: b, ope: ">=", val: b.format(value)}
+}
+
+// Returns a pointer to object where with operator "<=" less than or equal.
+func (b *bigint) LessOrEqual(value int64) *where {
+	return &where{col: b, ope: "<=", val: b.format(value)}
+}
+
+// Returns a pointer to object where with operator "<> or !=" not equal.
+func (b *bigint) NotEqual(value int64) *where {
+	return &where{col: b, ope: "<> or !=", val: b.format(value)}
+}
+
+func (b *bigint) format(value int64) string {
+	return fmt.Sprintf("'%d'", value)
+}
+
 // Returns sql type for this column.
-func (bigint) Type() string {
+func (bigint) sql() string {
 	return "INT8"
 }
-
-// Returns a pointer to an object where.
-// func (b *bigint) Where(value int64) *where {
-// 	return &where{col: b.nam, val: strconv.FormatInt(value, 10)}
-// }
-
-// Updates a value in an object where.
-// func (b *bigint) Update(where *where, value int64) {
-// 	where.val = strconv.FormatInt(value, 10)
-// }
-
-// Adds a row to the buffer before inserting.
-func (b *bigint) Row(value int64) {
-	b.col.buf = append(b.col.buf, value)
-}
-
-//	func (b *bigint) value() any {
-//		return b.data
-//	}
-//
-//	func (b *bigint) pointer() any {
-//		return &b.data
-//	}
-// func (b *bigint) buffer() []any {
-// 	defer b.clearBuffer()
-// 	return b.rows
-// }
-// func (b *bigint) clearBuffer() {
-// 	b.rows = nil
-// }
 
 // Returns a pointer to a buffer variable.
 func (b *bigint) pointer() any {
 	return &b.buf
 }
 
+// Calling a custom function for select.
 func (b *bigint) hook() {
 	if b.row != nil {
 		b.row(b.buf)
 	}
+}
+
+// Returns whether this column is subscribed to select.
+func (b *bigint) subscribed() bool {
+	return b.row != nil
 }
 
 /*
@@ -201,71 +310,116 @@ partially implements the interface "column".
 */
 
 type text struct {
-	col                    // Base colimn.
+	col                    // Base column.
 	buf string             // Row for select buffer.
 	row func(value string) // Calling a custom function for select.
 }
 
 // Creates object type string corresponding in sql as text.
 func (t *table) String(name string, row func(value string)) *text {
-	typ := &text{col: col{nam: name}, row: row}
-	t.addColumn(typ)
+	typ := &text{col: col{nam: name, tab: t}, row: row}
+	t.associate(typ)
 	return typ
 }
 
+// Adds a row to the buffer before inserting.
+func (t *text) Insert(value string) {
+	t.tab.insert(t, value)
+}
+
+// Updates the value in a column.
+func (t *text) Update(value string, where *where) {
+
+	whe := ""
+	if where != nil {
+		whe = " " + where.sql()
+	}
+	_, err := t.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", t.tab.sch.nam, t.tab.nam, t.nam, t.format(value), whe))
+	xlog.Fatalln(err)
+}
+
+// Order by asc.
+func (t *text) Asc(columns ...column) *order {
+	o := &order{asc: true, tab: t.tab}
+	o.add(t)
+	o.add(columns...)
+	return o
+}
+
+// Order by desc.
+func (t *text) Desc(columns ...column) *order {
+	o := &order{asc: false, tab: t.tab}
+	o.add(t)
+	o.add(columns...)
+	return o
+}
+
+// Returns a pointer to object where with operator "=" as equal.
+func (t *text) Equal(value string) *where {
+	return &where{col: t, ope: "=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "IN".
+func (t *text) In(values ...string) *where {
+
+	str := make([]string, len(values))
+
+	for i := 0; i < len(values); i++ {
+		str[i] = t.format(values[i])
+	}
+
+	return &where{col: t, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+}
+
+// Returns a pointer to object where with operator ">" 	greater than.
+func (t *text) Greater(value string) *where {
+	return &where{col: t, ope: ">", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<" less than.
+func (t *text) Less(value string) *where {
+	return &where{col: t, ope: "<", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator ">=" greater than or equal.
+func (t *text) GreaterOrEqual(value string) *where {
+	return &where{col: t, ope: ">=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<=" less than or equal.
+func (t *text) LessOrEqual(value string) *where {
+	return &where{col: t, ope: "<=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<> or !=" not equal.
+func (t *text) NotEqual(value string) *where {
+	return &where{col: t, ope: "<> or !=", val: t.format(value)}
+}
+
+func (t *text) format(value string) string {
+	return fmt.Sprintf("'%s'", value)
+}
+
 // Returns sql type for this column.
-func (text) Type() string {
+func (text) sql() string {
 	return "TEXT"
 }
-
-// Returns a pointer to an object where.
-// func (t *text) Where(value string) *where {
-// 	return &where{col: t.nam, val: value}
-// }
-
-// Updates a value in an object where.
-// func (t *text) Update(where *where, value string) {
-// 	where.val = value
-// }
-
-// Adds a row to the buffer before inserting.
-func (t *text) Row(value string) {
-	t.col.buf = append(t.col.buf, value)
-}
-
-// Returns a pointer to object where..
-// func (t *text) Where(value string) *where {
-// 	return &where{val: value}
-// }
-
-// func (t *text) WhereUpdate(value string) *where {
-// 	return &where{val: value}
-// }
-
-//	func (t *text) value() any {
-//		return t.data
-//	}
-//
-//	func (t *text) pointer() any {
-//		return &t.data
-//	}
-// func (t *text) buffer() []any {
-// 	defer t.clearBuffer()
-// 	return t.rows
-// }
-// func (t *text) clearBuffer() {
-// 	t.rows = nil
-// }
 
 // Returns a pointer to a buffer variable.
 func (t *text) pointer() any {
 	return &t.buf
 }
 
+// Calling a custom function for select.
 func (t *text) hook() {
 	if t.row != nil {
 		t.row(t.buf)
 	}
+}
+
+// Returns whether this column is subscribed to select.
+func (t *text) subscribed() bool {
+	return t.row != nil
 }
 
 /*
@@ -275,61 +429,98 @@ partially implements the interface "column".
 */
 
 type timestamp struct {
-	col                       // Base colimn.
+	col                       // Base column.
 	buf time.Time             // Row for select buffer.
 	row func(value time.Time) // Calling a custom function for select.
 }
 
 // Creates object type time.Time corresponding in sql as timestamp.
 func (t *table) Time(name string, row func(value time.Time)) *timestamp {
-	typ := &timestamp{col: col{nam: name}, row: row}
-	t.addColumn(typ)
+	typ := &timestamp{col: col{nam: name, tab: t}, row: row}
+	t.associate(typ)
 	return typ
 }
 
+// Adds a row to the buffer before inserting.
+func (t *timestamp) Insert(value time.Time) {
+	t.tab.insert(t, t.format(value.UTC()))
+}
+
+// Updates the value in a column.
+func (t *timestamp) Update(value time.Time, where *where) {
+
+	whe := ""
+	if where != nil {
+		whe = " " + where.sql()
+	}
+	_, err := t.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", t.tab.sch.nam, t.tab.nam, t.nam, t.format(value), whe))
+	xlog.Fatalln(err)
+}
+
+// Returns a pointer to object where with operator "=" as equal.
+func (t *timestamp) Equal(value time.Time) *where {
+	return &where{col: t, ope: "=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "IN".
+func (t *timestamp) In(values ...time.Time) *where {
+
+	str := make([]string, len(values))
+
+	for i := 0; i < len(values); i++ {
+		str[i] = t.format(values[i])
+	}
+
+	return &where{col: t, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+}
+
+// Returns a pointer to object where with operator ">" 	greater than.
+func (t *timestamp) Greater(value time.Time) *where {
+	return &where{col: t, ope: ">", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<" less than.
+func (t *timestamp) Less(value time.Time) *where {
+	return &where{col: t, ope: "<", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator ">=" greater than or equal.
+func (t *timestamp) GreaterOrEqual(value time.Time) *where {
+	return &where{col: t, ope: ">=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<=" less than or equal.
+func (t *timestamp) LessOrEqual(value time.Time) *where {
+	return &where{col: t, ope: "<=", val: t.format(value)}
+}
+
+// Returns a pointer to object where with operator "<> or !=" not equal.
+func (t *timestamp) NotEqual(value time.Time) *where {
+	return &where{col: t, ope: "<> or !=", val: t.format(value)}
+}
+
+func (t *timestamp) format(value time.Time) string {
+	return fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+}
+
 // Returns sql type for this column.
-func (timestamp) Type() string {
+func (timestamp) sql() string {
 	return "TIMESTAMP WITHOUT TIME ZONE"
 }
-
-// // Returns a pointer to an object where.
-// func (t *timestamp) Where(value time.Time) *where {
-// 	return &where{col: t.nam, val: value.String()}
-// }
-
-// // Updates a value in an object where.
-// func (t *timestamp) Update(where *where, value time.Time) {
-// 	where.val = value.String()
-// }
-
-// Adds a row to the buffer before inserting.
-func (t *timestamp) Row(value time.Time) {
-	t.col.buf = append(t.col.buf, value.UTC())
-}
-
-//	func (t *timestamp) value() any {
-//		return t.data
-//	}
-//
-//	func (t *timestamp) pointer() any {
-//		return &t.data
-//	}
-//
-//	func (t *timestamp) buffer() []any {
-//		defer t.clearBuffer()
-//		return t.rows
-//	}
-// func (t *timestamp) clearBuffer() {
-// 	t.rows = nil
-// }
 
 // Returns a pointer to a buffer variable.
 func (t *timestamp) pointer() any {
 	return &t.buf
 }
 
+// Calling a custom function for select.
 func (t *timestamp) hook() {
 	if t.row != nil {
 		t.row(t.buf.UTC())
 	}
+}
+
+// Returns whether this column is subscribed to select.
+func (t *timestamp) subscribed() bool {
+	return t.row != nil
 }
