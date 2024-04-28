@@ -25,7 +25,7 @@ limitations under the License.
 type schema struct {
 	nam string    // Schema name.
 	iss bool      // The schema has already been initialized.
-	dat *database // Database connection.
+	dat *Database // Database.
 }
 
 func (s *schema) Table(name string) *table {
