@@ -1,11 +1,5 @@
 package pdb
 
-import (
-	"fmt"
-
-	"github.com/pequin/xlog"
-)
-
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -22,24 +16,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type schema struct {
-	nam string    // Schema name.
-	iss bool      // The schema has already been initialized.
-	dat *database // Database.
+type SQL struct {
+	*database
+	*schema
 }
 
-func (s *schema) table(name string) *table {
-	tab := table{nam: name, sch: s}
-	return &tab
+func (d *SQL) Connect(user, password, host, database, shema string) {
+	d.database = connect(user, password, host, database)
+	d.schema = d.database.schema(shema)
 }
 
-func (s *schema) create() {
-
-	fmt.Println("dfbfd", s)
-
-	if !s.iss {
-		_, err := s.dat.trx.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", s.nam))
-		xlog.Fatalln(err)
-		s.iss = true
-	}
+func (d *SQL) Table(name string) *table {
+	return d.schema.table(name)
+}
+func (d *SQL) Commit() {
+	d.database.commit()
 }

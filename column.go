@@ -43,11 +43,6 @@ type col struct {
 	tab *table // Table.
 }
 
-// Sets a column as primary.
-func (c *col) Primary() {
-	c.pri = true
-}
-
 // Returns the associated table.
 func (c *col) table() *table {
 	return c.tab
@@ -75,8 +70,8 @@ type numeric struct {
 }
 
 // Creates object type float64 corresponding in sql as "NUMERIC".
-func (t *table) Float64(name string) *numeric {
-	typ := &numeric{col: col{nam: name, tab: t}}
+func (t *table) Float64(name string, primary bool) *numeric {
+	typ := &numeric{col: col{nam: name, pri: primary, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -181,8 +176,8 @@ type bigint struct {
 }
 
 // Creates object type int64 corresponding in sql as int8.
-func (t *table) Int64(name string) *bigint {
-	typ := &bigint{col: col{nam: name, tab: t}}
+func (t *table) Int64(name string, primary bool) *bigint {
+	typ := &bigint{col: col{nam: name, pri: primary, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -287,8 +282,8 @@ type text struct {
 }
 
 // Creates object type string corresponding in sql as text.
-func (t *table) String(name string) *text {
-	typ := &text{col: col{nam: name, tab: t}}
+func (t *table) String(name string, primary bool) *text {
+	typ := &text{col: col{nam: name, pri: primary, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -393,8 +388,8 @@ type timestamp struct {
 }
 
 // Creates object type time.Time corresponding in sql as timestamp.
-func (t *table) Time(name string) *timestamp {
-	typ := &timestamp{col: col{nam: name, tab: t}}
+func (t *table) Time(name string, primary bool) *timestamp {
+	typ := &timestamp{col: col{nam: name, pri: primary, tab: t}}
 	t.associate(typ)
 	return typ
 }
