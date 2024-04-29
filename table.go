@@ -31,10 +31,7 @@ type table struct {
 	buf []any    // Rows for inset buffer.
 }
 
-func (t *table) Select(where *where, order *order) {
-
-	// Columns.
-	col := make([]column, 0)
+func (t *table) Select(hook func(), where *where, order *order, columns ...column) {
 
 	// Pointers.
 	poi := make([]any, 0)
@@ -42,9 +39,16 @@ func (t *table) Select(where *where, order *order) {
 	// Columns names.
 	nam := make([]string, 0)
 
-	for i := 0; i < len(t.col); i++ {
-		if t.col[i].subscribed() {
-			col = append(col, t.col[i])
+	if l := len(columns); l > 0 {
+
+		for i := 0; i < l; i++ {
+			poi = append(poi, columns[i].pointer())
+			nam = append(nam, columns[i].name())
+		}
+
+	} else {
+
+		for i := 0; i < len(t.col); i++ {
 			poi = append(poi, t.col[i].pointer())
 			nam = append(nam, t.col[i].name())
 		}
@@ -71,8 +75,8 @@ func (t *table) Select(where *where, order *order) {
 	for row.Next() {
 		xlog.Fatalln(row.Scan(poi...))
 
-		for i := 0; i < len(col); i++ {
-			col[i].hook()
+		if hook != nil {
+			hook()
 		}
 	}
 }

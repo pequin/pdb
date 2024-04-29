@@ -26,12 +26,10 @@ limitations under the License.
 
 type column interface {
 	table() *table
-	name() string     // Returns name for this column.
-	primary() bool    // Returns true if this column is as primary.
-	sql() string      // Returns sql type for this column.
-	pointer() any     // Returns a pointer to a buffer variable.
-	hook()            // Calling a custom function for select.
-	subscribed() bool // Returns whether this column is subscribed to select.
+	name() string  // Returns name for this column.
+	primary() bool // Returns true if this column is as primary.
+	sql() string   // Returns sql type for this column.
+	pointer() any  // Returns a pointer to a buffer variable.
 }
 
 /*
@@ -72,14 +70,13 @@ partially implements the interface "column".
 */
 
 type numeric struct {
-	col                       // Base column.
-	buf float64               // Row for select buffer.
-	row func(numeric float64) // Calling a custom function for select.
+	Row float64 // Row for select buffer.
+	col         // Base column.
 }
 
 // Creates object type float64 corresponding in sql as "NUMERIC".
-func (t *table) Float64(name string, row func(numeric float64)) *numeric {
-	typ := &numeric{col: col{nam: name, tab: t}, row: row}
+func (t *table) Float64(name string) *numeric {
+	typ := &numeric{col: col{nam: name, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -169,19 +166,7 @@ func (numeric) sql() string {
 
 // Returns a pointer to a buffer variable.
 func (n *numeric) pointer() any {
-	return &n.buf
-}
-
-// Calling a custom function for select.
-func (n *numeric) hook() {
-	if n.row != nil {
-		n.row(n.buf)
-	}
-}
-
-// Returns whether this column is subscribed to select.
-func (n *numeric) subscribed() bool {
-	return n.row != nil
+	return &n.Row
 }
 
 /*
@@ -191,14 +176,13 @@ partially implements the interface "column".
 */
 
 type bigint struct {
-	col                   // Base column.
-	buf int64             // Row for select buffer.
-	row func(value int64) // Calling a custom function for select.
+	Row int64 // Row for select buffer.
+	col       // Base column.
 }
 
 // Creates object type int64 corresponding in sql as int8.
-func (t *table) Int64(name string, row func(value int64)) *bigint {
-	typ := &bigint{col: col{nam: name, tab: t}, row: row}
+func (t *table) Int64(name string) *bigint {
+	typ := &bigint{col: col{nam: name, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -288,19 +272,7 @@ func (bigint) sql() string {
 
 // Returns a pointer to a buffer variable.
 func (b *bigint) pointer() any {
-	return &b.buf
-}
-
-// Calling a custom function for select.
-func (b *bigint) hook() {
-	if b.row != nil {
-		b.row(b.buf)
-	}
-}
-
-// Returns whether this column is subscribed to select.
-func (b *bigint) subscribed() bool {
-	return b.row != nil
+	return &b.Row
 }
 
 /*
@@ -310,14 +282,13 @@ partially implements the interface "column".
 */
 
 type text struct {
-	col                    // Base column.
-	buf string             // Row for select buffer.
-	row func(value string) // Calling a custom function for select.
+	Row string // Row for select buffer.
+	col        // Base column.
 }
 
 // Creates object type string corresponding in sql as text.
-func (t *table) String(name string, row func(value string)) *text {
-	typ := &text{col: col{nam: name, tab: t}, row: row}
+func (t *table) String(name string) *text {
+	typ := &text{col: col{nam: name, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -407,19 +378,7 @@ func (text) sql() string {
 
 // Returns a pointer to a buffer variable.
 func (t *text) pointer() any {
-	return &t.buf
-}
-
-// Calling a custom function for select.
-func (t *text) hook() {
-	if t.row != nil {
-		t.row(t.buf)
-	}
-}
-
-// Returns whether this column is subscribed to select.
-func (t *text) subscribed() bool {
-	return t.row != nil
+	return &t.Row
 }
 
 /*
@@ -429,14 +388,13 @@ partially implements the interface "column".
 */
 
 type timestamp struct {
-	col                       // Base column.
-	buf time.Time             // Row for select buffer.
-	row func(value time.Time) // Calling a custom function for select.
+	Row time.Time // Row for select buffer.
+	col           // Base column.
 }
 
 // Creates object type time.Time corresponding in sql as timestamp.
-func (t *table) Time(name string, row func(value time.Time)) *timestamp {
-	typ := &timestamp{col: col{nam: name, tab: t}, row: row}
+func (t *table) Time(name string) *timestamp {
+	typ := &timestamp{col: col{nam: name, tab: t}}
 	t.associate(typ)
 	return typ
 }
@@ -510,17 +468,5 @@ func (timestamp) sql() string {
 
 // Returns a pointer to a buffer variable.
 func (t *timestamp) pointer() any {
-	return &t.buf
-}
-
-// Calling a custom function for select.
-func (t *timestamp) hook() {
-	if t.row != nil {
-		t.row(t.buf.UTC())
-	}
-}
-
-// Returns whether this column is subscribed to select.
-func (t *timestamp) subscribed() bool {
-	return t.row != nil
+	return &t.Row
 }
