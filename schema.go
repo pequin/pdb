@@ -22,18 +22,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type schema struct {
+type Schema struct {
 	nam string    // Schema name.
 	iss bool      // The schema has already been initialized.
-	dat *database // Database.
+	dat *Database // Database.
 }
 
-func (s *schema) table(name string) *table {
+func (s *Schema) table(name string) *table {
 	tab := table{nam: name, sch: s}
 	return &tab
 }
 
-func (s *schema) create() {
+func (s *Schema) create() {
 
 	fmt.Println("dfbfd", s)
 

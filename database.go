@@ -24,14 +24,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type database struct {
+type Database struct {
 	con *sql.DB // Database connection.
 	trx *sql.Tx // Transaction.
 	isb bool    // Is bnegin started a transaction.
 }
 
 // Connect to the PostgreSQL database.
-func connect(user, password, host, name string) *database {
+func connect(user, password, host, name string) *Database {
 
 	// Database Connection.
 	con, err := sql.Open("postgres", fmt.Sprintf("host=%s port=5432 user=%s password=%s dbname=%s sslmode=disable", host, user, password, name))
@@ -39,13 +39,13 @@ func connect(user, password, host, name string) *database {
 
 	xlog.Fatalln(con.Ping())
 
-	dat := database{con: con, isb: false}
+	dat := Database{con: con, isb: false}
 	dat.begin()
 
 	return &dat
 }
 
-func (d *database) commit() {
+func (d *Database) Commit() {
 
 	err := d.trx.Commit()
 	d.isb = false
@@ -56,12 +56,12 @@ func (d *database) commit() {
 	d.begin()
 }
 
-func (d *database) schema(name string) *schema {
-	sch := schema{nam: name, dat: d}
+func (d *Database) schema(name string) *Schema {
+	sch := Schema{nam: name, dat: d}
 	return &sch
 }
 
-func (d *database) begin() {
+func (d *Database) begin() {
 
 	if !d.isb {
 		tra, err := d.con.Begin()

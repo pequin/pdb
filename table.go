@@ -26,7 +26,7 @@ limitations under the License.
 type table struct {
 	nam string   // Table name.
 	isi bool     // The table has already been initialized.
-	sch *schema  // Schema.
+	sch *Schema  // Schema.
 	col []column // Table columns.
 	buf []any    // Rows for inset buffer.
 }
