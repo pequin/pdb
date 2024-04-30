@@ -31,7 +31,7 @@ type Database struct {
 }
 
 // Connect to the PostgreSQL database.
-func connect(user, password, host, name string) *Database {
+func Connect(user, password, host, name string) *Database {
 
 	// Database Connection.
 	con, err := sql.Open("postgres", fmt.Sprintf("host=%s port=5432 user=%s password=%s dbname=%s sslmode=disable", host, user, password, name))
@@ -56,7 +56,7 @@ func (d *Database) Commit() {
 	d.begin()
 }
 
-func (d *Database) schema(name string) *Schema {
+func (d *Database) Schema(name string) *Schema {
 	sch := Schema{nam: name, dat: d}
 	return &sch
 }
