@@ -45,7 +45,7 @@ func Connect(user, password, host, name string) *Database {
 	return &dat
 }
 
-func (d *Database) Commit() {
+func (d *Database) commit() {
 
 	err := d.trx.Commit()
 	d.isb = false

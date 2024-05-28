@@ -28,18 +28,20 @@ type Schema struct {
 	dat *Database // Database.
 }
 
-func (s *Schema) table(name string) *table {
-	tab := table{nam: name, sch: s}
+func (s *Schema) Table(name string) *Table {
+	tab := Table{nam: name, sch: s}
 	return &tab
 }
 
 func (s *Schema) create() {
-
-	fmt.Println("dfbfd", s)
 
 	if !s.iss {
 		_, err := s.dat.trx.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", s.nam))
 		xlog.Fatalln(err)
 		s.iss = true
 	}
+}
+
+func (s *Schema) Commit() {
+	s.dat.commit()
 }

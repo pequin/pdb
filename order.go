@@ -23,7 +23,7 @@ limitations under the License.
 */
 
 type order struct {
-	tab *table   // Table.
+	tab *Table   // Table.
 	asc bool     // Sort alphabetically.
 	col []string // Names of columns.
 }

@@ -2,6 +2,7 @@ package pdb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/pequin/xlog"
@@ -23,7 +24,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type table struct {
+type Table struct {
 	nam string   // Table name.
 	isi bool     // The table has already been initialized.
 	sch *Schema  // Schema.
@@ -31,7 +32,7 @@ type table struct {
 	buf []any    // Rows for inset buffer.
 }
 
-func (t *table) Select(hook func(), where *where, order *order, columns ...column) {
+func (t *Table) Select(hook func(), where *where, order *order, offset, limit uint64, columns ...column) {
 
 	// Pointers.
 	poi := make([]any, 0)
@@ -66,10 +67,17 @@ func (t *table) Select(hook func(), where *where, order *order, columns ...colum
 		ord = " " + order.sql()
 	}
 
+	// Limit.
+	lim := ""
+	if limit > 0 {
+		lim = fmt.Sprintf(" LIMIT %s", strconv.FormatUint(limit, 10))
+	}
+
 	t.create()
 
-	row, err := t.sch.dat.trx.Query(fmt.Sprintf("SELECT %s FROM %s.%s%s%s;", strings.Join(nam, ", "), t.sch.nam, t.nam, whe, ord))
-	xlog.Fatalln(err)
+	sss := fmt.Sprintf("SELECT %s FROM %s.%s%s%s%s OFFSET %s;", strings.Join(nam, ", "), t.sch.nam, t.nam, whe, ord, lim, strconv.FormatUint(offset, 10))
+	row, err := t.sch.dat.trx.Query(sss)
+	xlog.Fatallf("Error: %s, sql: %s", err, sss)
 	defer row.Close()
 
 	for row.Next() {
@@ -82,7 +90,7 @@ func (t *table) Select(hook func(), where *where, order *order, columns ...colum
 }
 
 // Creates a schema and table in the database if they have not been created previously.
-func (t *table) create() {
+func (t *Table) create() {
 
 	if !t.isi {
 		col := make([]string, len(t.col)) // Columns.
@@ -110,7 +118,7 @@ func (t *table) create() {
 }
 
 // Adds a column.
-func (t *table) associate(col column) {
+func (t *Table) associate(col column) {
 
 	if t.isi {
 		xlog.Fatallf("Can't add column to an already initialized table: %s.", t.nam)
@@ -122,7 +130,7 @@ func (t *table) associate(col column) {
 }
 
 // Returns this column is exist in the table.
-func (t *table) isAssociated(col column) bool {
+func (t *Table) isAssociated(col column) bool {
 
 	ist := false
 
@@ -133,7 +141,7 @@ func (t *table) isAssociated(col column) bool {
 }
 
 // Returns the index of a column in a table.
-func (t *table) index(col column) int {
+func (t *Table) index(col column) int {
 
 	for i := 0; i < len(t.col); i++ {
 
@@ -148,7 +156,7 @@ func (t *table) index(col column) int {
 	return 0
 }
 
-func (t *table) insert(col column, val any) {
+func (t *Table) insert(col column, val any) {
 
 	// Column index.
 	idx := t.index(col)
@@ -183,8 +191,12 @@ func (t *table) insert(col column, val any) {
 
 		t.create()
 
-		_, err := t.sch.dat.trx.Exec(fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s)", t.sch.nam, t.nam, strings.Join(nam, ", "), strings.Join(str, ", "))+";", t.buf...)
-		xlog.Fatalln(err)
+		sss := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s)", t.sch.nam, t.nam, strings.Join(nam, ", "), strings.Join(str, ", ")) + ";"
+
+		// fmt.Println(t.nam, sss, t.buf)
+
+		_, err := t.sch.dat.trx.Exec(sss, t.buf...)
+		xlog.Fatallf("Error: %s, sql: \"%s\", values: %v", err, sss, val)
 
 		// Clear buffer.
 		for i := 0; i < len(t.col); i++ {
