@@ -92,11 +92,11 @@ func (t *thread) Reader(table *table) *reader {
 	return rad
 }
 
-func (r *reader) Filter(filter *filter) *filter {
+func (r *reader) Filter(filter *filter) {
 	r.flt = filter
-	return filter
 }
 func (r *reader) query() string {
+
 	arg := make([]string, 0)
 
 	if r.flt != nil {
