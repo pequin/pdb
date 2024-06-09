@@ -1,5 +1,7 @@
 package pdb
 
+import "strconv"
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,18 +18,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type schema struct {
-	nme string // Name.
-	// dba *database // Database.
-}
+type limit uint64
 
-func (d *database) Schema(name string) *schema {
-	// _, err := d.dba.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
-	// xlog.Fatalln(err)
-	// return &schema{nme: name, dba: d}
-	return &schema{nme: name}
-}
+func (l limit) query() string {
 
-// func (s *schema) Table(name string) *table {
-// 	return &table{nm: name, sh: s}
-// }
+	sql := "NULL"
+	if l > 0 {
+		sql = strconv.FormatUint(uint64(l), 10)
+	}
+
+	return "LIMIT" + " " + sql
+}

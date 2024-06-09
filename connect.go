@@ -1,5 +1,9 @@
 package pdb
 
+import (
+	_ "github.com/lib/pq"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,18 +20,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type schema struct {
-	nme string // Name.
-	// dba *database // Database.
-}
+// type Connect struct {
+// }
 
-func (d *database) Schema(name string) *schema {
-	// _, err := d.dba.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
-	// xlog.Fatalln(err)
-	// return &schema{nme: name, dba: d}
-	return &schema{nme: name}
-}
+// // Connect to the PostgreSQL database.
+// func Connectgggg(user, password, host, name string) *Database {
 
-// func (s *schema) Table(name string) *table {
-// 	return &table{nm: name, sh: s}
+// 	// Database Connection.
+// 	con, err := sql.Open("postgres", fmt.Sprintf("host=%s port=5432 user=%s password=%s dbname=%s sslmode=disable", host, user, password, name))
+// 	xlog.Fatalln(err)
+
+// 	xlog.Fatalln(con.Ping())
+
+// 	dat := Database{con: con, isb: false}
+// 	dat.begin()
+
+// 	return &dat
 // }

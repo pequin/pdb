@@ -1,9 +1,8 @@
 package pdb
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/pequin/xlog"
 )
 
 /*
@@ -22,29 +21,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type order struct {
-	tab *Table   // Table.
-	asc bool     // Sort alphabetically.
-	col []string // Names of columns.
+// Map of specifies the sort order by column, true is ASC.
+type sort map[column]bool
+
+func (s sort) Asc(by column) {
+	s[by] = true
+}
+func (s sort) Desc(by column) {
+	s[by] = false
 }
 
-func (o *order) add(columns ...column) {
+func (s sort) query(table *table) string {
 
-	for i := 0; i < len(columns); i++ {
-		if o.tab.isAssociated(columns[i]) {
-			o.col = append(o.col, columns[i].name())
+	itm := make([]string, 0)
+
+	sql := ""
+
+	for c, b := range s {
+
+		if b {
+			itm = append(itm, fmt.Sprintf("%s.%s ASC", table.from(), c.nam()))
 		} else {
-			xlog.Fatallf("The column \"%s\" is not associated with the table: %s.", columns[i].name(), columns[i].table().nam)
+			itm = append(itm, fmt.Sprintf("%s.%s DESC", table.from(), c.nam()))
 		}
 	}
-}
 
-func (o *order) sql() string {
-
-	asc := " ASC"
-	if !o.asc {
-		asc = " DESC"
+	if len(itm) > 0 {
+		sql = fmt.Sprintf("ORDER BY %s", strings.Join(itm, ", "))
 	}
 
-	return "ORDER BY " + strings.Join(o.col, ", ") + asc
+	return sql
 }

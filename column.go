@@ -2,11 +2,7 @@ package pdb
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
-
-	"github.com/pequin/xlog"
 )
 
 /*
@@ -26,517 +22,748 @@ limitations under the License.
 */
 
 type column interface {
-	table() *Table
-	name() string  // Returns name for this column.
-	primary() bool // Returns true if this column is as primary.
-	sql() string   // Returns sql type for this column.
-	pointer() any  // Returns a pointer to a buffer variable.
+	nam() string // Returns name of column .
+	// 	// 	// 	// whr() string // Returns where string.
+	// 	// 	// 	// pgt() string // Returns postgresql type for this column.
+	// 	// 	// 	// bff() any    // Returns a pointer to a buffer.
+
+	buf() any // Create and returm pointer to buffer.
+	// 	// ptr(func() string) string // Create and returm pointer
+	// row(func(gg *Get)) // Create and returm pointer
+	// buf() any // Create and returm variable for buffer
 }
 
 /*
-Type col, this type is the parent of all columns without exception and
-partially implements the interface column.
+Type "boolean", corresponds to the type number in postgresql "BOOLEAN",
+this type implements the interface "column".
 */
+// type boolean struct {
+// 	nme string // Name of column.
+// 	ptr *bool  // Pointer to buffer.
+// }
 
-type col struct {
-	nam string // Column name.
-	pri bool   // Is as primary.
-	tab *Table // Table.
+// // Creates object type bool corresponding in postgresql as boolean.
+// func Bool(name string) *boolean {
+// 	return &boolean{nme: name}
+// }
+
+// // Returns name for this column.
+// func (b *boolean) name() string {
+// 	return b.nme
+// }
+
+// // Create and returm pointer to buffer.
+// func (b *boolean) buffer() any {
+// 	b.ptr = new(bool)
+// 	return b.ptr
+// }
+
+// // Update value for filter.
+// func (b *boolean) Where(value bool) {
+// 	*b.wv = fmt.Sprintf("'%t'", value)
+// }
+
+// // Establishes the logic of the association where.
+// func (b *boolean) And() {
+// 	*b.wu = "AND"
+// }
+
+// // Establishes the logic of the association where.
+// func (b *boolean) Or() {
+// 	*b.wu = "OR"
+// }
+
+// // Sets the filter equal for type boolean.
+// func (b *boolean) Equal(value bool) {
+// 	v := fmt.Sprintf("'%t'", value)
+// 	o := "="
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
+
+// // Sets the filter not equal for type boolean.
+// func (b *boolean) NotEqual(value bool) {
+// 	v := fmt.Sprintf("'%t'", value)
+// 	o := "<>"
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
+
+// // Sets sorting by asc.
+// func (b *boolean) Asc() {
+// 	v := true
+// 	b.sb = &v
+// }
+
+// // Sets sorting by desc.
+// func (b *boolean) Desc() {
+// 	v := false
+// 	b.sb = &v
+// }
+
+// // Returns name for this column.
+// func (b *boolean) nme() string {
+// 	return b.nm
+// }
+
+// // Returns where string.
+// func (b *boolean) whr() string {
+
+// 	v := ""
+
+// 	if b.wo != nil && b.wv != nil {
+// 		v = b.nm + " " + *b.wo + " " + *b.wv
+// 	}
+
+// 	if b.wu != nil {
+// 		v += " " + *b.wu
+// 	}
+
+// 	return v
+// }
+
+// // Returns a pointer to a buffer.
+// func (b *boolean) bff() any {
+// 	return &b.rw
+// }
+
+// // Returns postgresql type for this column.
+// func (boolean) pgt() string {
+// 	return "BOOLEAN"
+// }
+
+// /*
+// Type "text", corresponds to the type number in postgresql "TEXT",
+// this type implements the interface "column".
+// */
+// type text struct {
+// 	nm string  // Name.
+// 	rw string  // Row for select buffer.
+// 	wo *string // Where operator.
+// 	wv *string // Where value.
+// 	wu *string // Where union.
+// 	sb *bool   // Sort by.
+// }
+
+// // Update value for filter.
+// func (t *text) Where(value string) {
+// 	*t.wv = value
+// }
+
+// // Establishes the logic of the association where.
+// func (t *text) And() {
+// 	*t.wu = "AND"
+// }
+
+// // Establishes the logic of the association where.
+// func (t *text) Or() {
+// 	*t.wu = "OR"
+// }
+
+// // Sets the filter equal for type text.
+// func (t *text) Equal(value string) {
+// 	v := value
+// 	o := "="
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
+
+// // Sets the filter not equal for type text.
+// func (t *text) NotEqual(value string) {
+// 	v := value
+// 	o := "<>"
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
+
+// // Sets sorting by asc.
+// func (t *text) Asc() {
+// 	v := true
+// 	t.sb = &v
+// }
+
+// // Sets sorting by desc.
+// func (t *text) Desc() {
+// 	v := false
+// 	t.sb = &v
+// }
+
+// // Returns name for this column.
+// func (t *text) nme() string {
+// 	return t.nm
+// }
+
+// // Returns where string.
+// func (t *text) whr() string {
+
+// 	v := ""
+
+// 	if t.wo != nil && t.wv != nil {
+// 		v = t.nm + " " + *t.wo + " " + *t.wv
+// 	}
+
+// 	if t.wu != nil {
+// 		v += " " + *t.wu
+// 	}
+
+// 	return v
+// }
+
+// // Returns a pointer to a buffer.
+// func (t *text) bff() any {
+// 	return &t.rw
+// }
+
+// // Returns postgresql type for this column.
+// func (text) pgt() string {
+// 	return "TEXT"
+// }
+
+/*
+Type "Int64", corresponds to the type number in postgresql "BIGINT",
+this type implements the interface "column".
+*/
+type Int64 string
+type whereInt64 struct {
+	whr *where
 }
 
-// Returns the associated table.
-func (c *col) table() *Table {
-	return c.tab
+// Returns value from buffer.
+func (i Int64) Row(reader *reader) int64 {
+	return *reader.buf[reader.rid[i]].(*int64)
 }
+
+// Creates object type where.
+// func (i Int64) Where(value int64) *where {
+// return &where{col: i, val: fmt.Sprintf("'%d'", value), opr: "="}
+// }
+// func (i Int64) Where(where *where, value int64) {
+// 	return &where{col: i, val: fmt.Sprintf("'%d'", value), opr: "="}
+// }
+
+// col column // Column.
+// opr string // Operator.
+// val string // Value.
+// Update value for where.
+func (i Int64) Where() *whereInt64 {
+	return &whereInt64{whr: &where{col: i}}
+}
+
+func (w *whereInt64) Less(value int64) *where {
+	w.whr.opr = "<"
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+func (w *whereInt64) LessOrEqual(value int64) *where {
+	w.whr.opr = "<="
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+func (w *whereInt64) Equal(value int64) *where {
+	w.whr.opr = "="
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+func (w *whereInt64) NotEqual(value int64) *where {
+	w.whr.opr = "<>"
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+func (w *whereInt64) Greater(value int64) *where {
+	w.whr.opr = ">"
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+func (w *whereInt64) GreaterOrEqual(value int64) *where {
+	w.whr.opr = ">="
+	w.whr.val = fmt.Sprintf("%d", value)
+	return w.whr
+}
+
+// Creates a sort object with a default value - asc.
+// func (i Int64) Sort() *order {
+// 	return &order{nme: i.nam(), asc: true}
+// }
 
 // Returns name for this column.
-func (c *col) name() string {
-	return c.nam
+func (i Int64) nam() string {
+	return string(i)
 }
 
-// Returns true if this column is as primary.
-func (c *col) primary() bool {
-	return c.pri
+// Creates and returm pointer to buffer.
+func (Int64) buf() any {
+	return new(int64)
 }
 
-/*
-Type "boolean", corresponds to the type number in SQL "BOOLEAN",
-this type is child from type "col" and
-partially implements the interface "column".
-*/
-
-type Bool struct {
-	Row bool // Row for select buffer.
-	col      // Base column.
-}
-
-// Creates object type bool corresponding in sql as timestamp.
-func (b *Table) Bool(name string, primary bool) *Bool {
-	typ := &Bool{col: col{nam: name, pri: primary, tab: b}}
-	b.associate(typ)
-	return typ
-}
-
-// Adds a row to the buffer before inserting.
-func (b *Bool) Insert(value bool) {
-	b.tab.insert(b, b.format(value))
-}
-
-// Updates the value in a column.
-func (b *Bool) Update(value bool, where *where) {
-
-	whe := ""
-	if where != nil {
-		whe = " " + where.sql()
-	}
-	_, err := b.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", b.tab.sch.nam, b.tab.nam, b.nam, b.format(value), whe))
-	xlog.Fatalln(err)
-}
-
-// Returns a pointer to object where with operator "=" as equal.
-func (b *Bool) Equal(value bool) *where {
-	return &where{col: b, ope: "=", val: b.format(value)}
-}
-
-// Returns a pointer to object where with operator "<> or !=" not equal.
-func (b *Bool) NotEqual(value bool) *where {
-	return &where{col: b, ope: "<> or !=", val: b.format(value)}
-}
-
-func (b *Bool) format(value bool) string {
-	return strconv.FormatBool(value)
-}
-
-// Returns sql type for this column.
-func (Bool) sql() string {
-	return "BOOLEAN"
-}
-
-// Returns a pointer to a buffer variable.
-func (b *Bool) pointer() any {
-	return &b.Row
-}
-
-/*
-Type "Float64", corresponds to the type number in SQL "NUMERIC",
-this type is child from type "col" and
-partially implements the interface "column".
-*/
-
-type Float64 struct {
-	Row float64 // Row for select buffer.
-	col         // Base column.
-}
-
-// Creates object type float64 corresponding in sql as "NUMERIC".
-func (t *Table) Float64(name string, primary bool) *Float64 {
-	typ := &Float64{col: col{nam: name, pri: primary, tab: t}}
-	t.associate(typ)
-	return typ
-}
-
-// Adds a row to the buffer before inserting.
-func (f *Float64) Insert(value float64) {
-	f.tab.insert(f, value)
-}
-
-// Updates the value in a column.
-// func (f *Float64) Update(value float64, where *where) {
-
-// 	whe := ""
-// 	if where != nil {
-// 		whe = " " + where.sql()
-// 	}
-// 	_, err := f.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", f.tab.sch.nam, f.tab.nam, f.nam, f.format(value), whe))
-// 	xlog.Fatalln(err)
+// // Update value for filter.
+// func (n *Int64) Set(filter *where, value int64) {
+// 	filter.val = fmt.Sprintf("'%d'", value)
 // }
 
-// Order by asc.
-// func (f *Float64) Asc(columns ...column) *order {
-// 	o := &order{asc: true, tab: f.tab}
-// 	o.add(f)
-// 	o.add(columns...)
-// 	return o
+// // Establishes the logic of the association where.
+// func (b *bigint) And() {
+// 	*b.wu = "AND"
 // }
 
-// Order by desc.
-// func (f *Float64) Desc(columns ...column) *order {
-// 	o := &order{asc: false, tab: f.tab}
-// 	o.add(f)
-// 	o.add(columns...)
-// 	return o
+// // Establishes the logic of the association where.
+// func (b *bigint) Or() {
+// 	*b.wu = "OR"
 // }
 
-// Returns a pointer to object where with operator "=" as equal.
-// func (f *Float64) Equal(value float64) *where {
-// 	return &where{col: f, ope: "=", val: f.format(value)}
+// // Sets the filter less than for type bigint.
+// func (b *bigint) LessThan(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := "<"
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
 // }
 
-// Returns a pointer to object where with operator "IN".
-// func (f *Float64) In(values ...float64) *where {
+// // Sets the filter less or equal for type bigint.
+// func (b *bigint) LessOrEqual(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := "<="
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
 
-// 	str := make([]string, len(values))
+// // Sets the filter equal for type bigint.
+// func (b *bigint) Equal(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := "="
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
 
-// 	for vid := 0; vid < len(values); vid++ {
-// 		str[vid] = f.format(values[vid])
+// // Sets the filter not equal for type bigint.
+// func (b *bigint) NotEqual(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := "<>"
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
+
+// // Sets the filter greater than for type bigint.
+// func (b *bigint) GreaterThan(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := ">"
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
+
+// // Sets the filter greater or equal for type bigint.
+// func (b *bigint) GreaterOrEqual(value int64) {
+// 	v := fmt.Sprintf("'%d'", value)
+// 	o := ">="
+// 	u := "AND"
+// 	b.wo = &o
+// 	b.wv = &v
+// 	b.wu = &u
+// }
+
+// // Sets sorting by asc.
+// func (b *bigint) Asc() {
+// 	v := true
+// 	b.sb = &v
+// }
+
+// // Sets sorting by desc.
+// func (b *bigint) Desc() {
+// 	v := false
+// 	b.sb = &v
+// }
+
+// // Returns name for this column.
+// func (b *bigint) nme() string {
+// 	return b.nm
+// }
+
+// // Returns where string.
+// func (b *bigint) whr() string {
+
+// 	v := ""
+
+// 	if b.wo != nil && b.wv != nil {
+// 		v = b.nm + " " + *b.wo + " " + *b.wv
 // 	}
 
-// 	return &where{col: f, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+// 	if b.wu != nil {
+// 		v += " " + *b.wu
+// 	}
+
+// 	return v
 // }
 
-// Returns a pointer to object where with operator ">" 	greater than.
-// func (f *Float64) Greater(value float64) *where {
-// 	return &where{col: f, ope: ">", val: f.format(value)}
+// // Returns a pointer to a buffer.
+// func (b *bigint) bff() any {
+// 	return &b.rw
 // }
 
-// Returns a pointer to object where with operator "<" less than.
-// func (f *Float64) Less(value float64) *where {
-// 	return &where{col: f, ope: "<", val: f.format(value)}
+// // Returns postgresql type for this column.
+// func (bigint) pgt() string {
+// 	return "BIGINT"
 // }
-
-// Returns a pointer to object where with operator ">=" greater than or equal.
-// func (f *Float64) GreaterOrEqual(value float64) *where {
-// 	return &where{col: f, ope: ">=", val: f.format(value)}
-// }
-
-// Returns a pointer to object where with operator "<=" less than or equal.
-// func (f *Float64) LessOrEqual(value float64) *where {
-// 	return &where{col: f, ope: "<=", val: f.format(value)}
-// }
-
-// Returns a pointer to object where with operator "<> or !=" not equal.
-// func (f *Float64) NotEqual(value float64) *where {
-// 	return &where{col: f, ope: "<> or !=", val: f.format(value)}
-// }
-
-// func (f *Float64) format(value float64) string {
-// 	return fmt.Sprintf("'%f'", value)
-// }
-
-// Returns sql type for this column.
-func (Float64) sql() string {
-	return "NUMERIC"
-}
-
-// Returns a pointer to a buffer variable.
-func (f *Float64) pointer() any {
-	return &f.Row
-}
 
 /*
-Type "Int64", corresponds to the type number in SQL "INT8",
-this type is child from type "col" and
-partially implements the interface "column".
+Type "numeric", corresponds to the type number in postgresql "NUMERIC",
+this type implements the interface "column".
 */
-
-type Int64 struct {
-	Row int64 // Row for select buffer.
-	col       // Base column.
+type Float64 string
+type whereFloat64 struct {
+	whr *where
 }
 
-// Creates object type int64 corresponding in sql as int8.
-func (t *Table) Int64(name string, primary bool) *Int64 {
-	typ := &Int64{col: col{nam: name, pri: primary, tab: t}}
-	t.associate(typ)
-	return typ
+// type numeric struct {
+// 	nme string   // Name of column.
+// 	ptr *float64 // Pointer to buffer.
+// }
+
+// // Creates object type float64 corresponding in postgresql as numeric.
+// func Float64(name string) *numeric {
+// 	return &numeric{nme: name}
+// }
+
+// // Returns name for this column.
+// func (n *numeric) name() string {
+// 	return n.nme
+// }
+
+// Returns value from buffer.
+func (f Float64) Row(reader *reader) float64 {
+	return *reader.buf[reader.rid[f]].(*float64)
 }
 
-// Adds a row to the buffer before inserting.
-func (i *Int64) Insert(value int64) {
-	i.tab.insert(i, value)
+// // Creates object type where.
+// func (f Float64) Where(value float64) *where {
+// 	return &where{col: f, val: fmt.Sprintf("'%f'", value), opr: "="}
+// }
+
+// // Update value for where.
+// func (f *Float64) WhereValue(where *where, value float64) {
+// 	if f == where.col {
+// 		where.val = fmt.Sprintf("'%f'", value)
+// 	} else {
+// 		xlog.Fatalln("Cannot update value for *where for another column.")
+// 	}
+// }
+
+// Creates a sort object with a default value - asc.
+// func (f Float64) Sort() *order {
+// 	return &order{nme: f.nam(), asc: true}
+// }
+
+// Returns name for this column.
+func (f Float64) nam() string {
+	return string(f)
 }
 
-// Updates the value in a column.
-func (b *Int64) Update(value int64, where *where) {
-
-	whe := ""
-	if where != nil {
-		whe = " " + where.sql()
-	}
-	_, err := b.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", b.tab.sch.nam, b.tab.nam, b.nam, b.format(value), whe))
-	xlog.Fatalln(err)
+// Create and returm pointer to buffer.
+func (Float64) buf() any {
+	return new(float64)
 }
 
-// Order by asc.
-func (i *Int64) Asc(columns ...column) *order {
-	o := &order{asc: true, tab: i.tab}
-	o.add(i)
-	o.add(columns...)
-	return o
+// // Update value for filter.
+// func (n *numeric) Where(value float64) {
+// 	*n.wv = fmt.Sprintf("'%f'", value)
+// }
+
+// // Establishes the logic of the association where.
+// func (n *numeric) And() {
+// 	*n.wu = "AND"
+// }
+
+// // Establishes the logic of the association where.
+// func (n *numeric) Or() {
+// 	*n.wu = "OR"
+// }
+
+// // Sets the filter less than for type numeric.
+// func (n *numeric) LessThan(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := "<"
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Sets the filter less or equal for type numeric.
+// func (n *numeric) LessOrEqual(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := "<="
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Sets the filter equal for type numeric.
+// func (n *numeric) Equal(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := "="
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Sets the filter not equal for type numeric.
+// func (n *numeric) NotEqual(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := "<>"
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Sets the filter greater than for type numeric.
+// func (n *numeric) GreaterThan(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := ">"
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Sets the filter greater or equal for type numeric.
+// func (n *numeric) GreaterOrEqual(value float64) {
+// 	v := fmt.Sprintf("'%f'", value)
+// 	o := ">="
+// 	u := "AND"
+// 	n.wo = &o
+// 	n.wv = &v
+// 	n.wu = &u
+// }
+
+// // Returns name for this column.
+// func (n *numeric) nme() string {
+// 	return n.nm
+// }
+
+// // Returns where string.
+// func (n *numeric) whr() string {
+
+// 	v := ""
+
+// 	if n.wo != nil && n.wv != nil {
+// 		v = n.nm + " " + *n.wo + " " + *n.wv
+// 	}
+
+// 	if n.wu != nil {
+// 		v += " " + *n.wu
+// 	}
+
+// 	return v
+// }
+
+// // Returns a pointer to a buffer.
+// func (n *numeric) bff() any {
+// 	return &n.rw
+// }
+
+// // Returns postgresql type for this column.
+// func (numeric) pgt() string {
+// 	return "NUMERIC"
+// }
+
+// /*
+// Type "timestamp", corresponds to the type number in postgresql "TIMESTAMP WITHOUT TIME ZONE",
+// this type implements the interface "column".
+// */
+type Time string
+type whereTime struct {
+	whr *where
 }
 
-// Order by desc.
-func (i *Int64) Desc(columns ...column) *order {
-	o := &order{asc: false, tab: i.tab}
-	o.add(i)
-	o.add(columns...)
-	return o
+// type timestamp struct {
+// 	nme string     // Name of column.
+// 	ptr *time.Time // Pointer to buffer.
+// }
+
+// // Creates object type time.Time corresponding in postgresql as timestamp.
+// func Time(name string) *timestamp {
+// 	return &timestamp{nme: name}
+// }
+
+// // Returns name for this column.
+// func (t *timestamp) name() string {
+// 	return t.nme
+// }
+
+// Returns value from buffer.
+func (t Time) Row(reader *reader) int64 {
+	return *reader.buf[reader.rid[t]].(*int64)
 }
 
-// Returns a pointer to object where with operator "=" as equal.
-func (i *Int64) Equal(value int64) *where {
-	return &where{col: i, ope: "=", val: i.format(value)}
+// // Creates object type where.
+// func (t Time) Where(value time.Time) *where {
+// 	return &where{col: t, val: fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()), opr: "="}
+// }
+
+// // Update value for where.
+// func (t *Time) WhereValue(where *where, value time.Time) {
+// 	if t == where.col {
+// 		where.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	} else {
+// 		xlog.Fatalln("Cannot update value for *where for another column.")
+// 	}
+// }
+
+// Creates a sort object with a default value - asc.
+// func (t Time) Sort() *order {
+// 	return &order{nme: t.nam(), asc: true}
+// }
+
+// Returns name for this column.
+func (t Time) nam() string {
+	return string(t)
 }
 
-// Returns a pointer to object where with operator "IN".
-func (i *Int64) In(values ...int64) *where {
-
-	str := make([]string, len(values))
-
-	for vid := 0; vid < len(values); vid++ {
-		str[vid] = i.format(values[vid])
-	}
-
-	return &where{col: i, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
+// Create and returm pointer to buffer.
+func (Time) buf() any {
+	return new(time.Time)
 }
 
-// Returns a pointer to object where with operator ">" 	greater than.
-func (i *Int64) Greater(value int64) *where {
-	return &where{col: i, ope: ">", val: i.format(value)}
-}
+// // Update value for filter.
+// func (t *timestamp) Where(value time.Time) {
+// 	value = value.UTC()
+// 	*t.wv = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// }
 
-// Returns a pointer to object where with operator "<" less than.
-func (i *Int64) Less(value int64) *where {
-	return &where{col: i, ope: "<", val: i.format(value)}
-}
+// // Establishes the logic of the association where.
+// func (t *timestamp) And() {
+// 	*t.wu = "AND"
+// }
 
-// Returns a pointer to object where with operator ">=" greater than or equal.
-func (i *Int64) GreaterOrEqual(value int64) *where {
-	return &where{col: i, ope: ">=", val: i.format(value)}
-}
+// // Establishes the logic of the association where.
+// func (t *timestamp) Or() {
+// 	*t.wu = "OR"
+// }
 
-// Returns a pointer to object where with operator "<=" less than or equal.
-func (i *Int64) LessOrEqual(value int64) *where {
-	return &where{col: i, ope: "<=", val: i.format(value)}
-}
+// // Sets the filter less than for type timestamp.
+// func (t *timestamp) LessThan(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := "<"
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-// Returns a pointer to object where with operator "<> or !=" not equal.
-func (i *Int64) NotEqual(value int64) *where {
-	return &where{col: i, ope: "<> or !=", val: i.format(value)}
-}
+// // Sets the filter less or equal for type timestamp.
+// func (t *timestamp) LessOrEqual(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := "<="
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-func (i *Int64) format(value int64) string {
-	return fmt.Sprintf("'%d'", value)
-}
+// // Sets the filter equal for type timestamp.
+// func (t *timestamp) Equal(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := "="
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-// Returns sql type for this column.
-func (Int64) sql() string {
-	return "INT8"
-}
+// // Sets the filter not equal for type timestamp.
+// func (t *timestamp) NotEqual(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := "<>"
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-// Returns a pointer to a buffer variable.
-func (i *Int64) pointer() any {
-	return &i.Row
-}
+// // Sets the filter greater than for type timestamp.
+// func (t *timestamp) GreaterThan(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := ">"
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-/*
-Type "String", corresponds to the type number in SQL "TEXT",
-this type is child from type "col" and
-partially implements the interface "column".
-*/
+// // Sets the filter greater or equal for type timestamp.
+// func (t *timestamp) GreaterOrEqual(value time.Time) {
+// 	value = value.UTC()
+// 	v := fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	o := ">="
+// 	u := "AND"
+// 	t.wo = &o
+// 	t.wv = &v
+// 	t.wu = &u
+// }
 
-type String struct {
-	Row string // Row for select buffer.
-	col        // Base column.
-}
+// // Sets sorting by asc.
+// func (t *timestamp) Asc() {
+// 	v := true
+// 	t.sb = &v
+// }
 
-// Creates object type string corresponding in sql as text.
-func (t *Table) String(name string, primary bool) *String {
-	typ := &String{col: col{nam: name, pri: primary, tab: t}}
-	t.associate(typ)
-	return typ
-}
+// // Sets sorting by desc.
+// func (t *timestamp) Desc() {
+// 	v := false
+// 	t.sb = &v
+// }
 
-// Adds a row to the buffer before inserting.
-func (s *String) Insert(value string) {
-	s.tab.insert(s, value)
-}
+// // Returns name for this column.
+// func (t *timestamp) nme() string {
+// 	return t.nm
+// }
 
-// Updates the value in a column.
-func (s *String) Update(value string, where *where) {
+// // Returns where string.
+// func (t *timestamp) whr() string {
 
-	whe := ""
-	if where != nil {
-		whe = " " + where.sql()
-	}
-	_, err := s.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", s.tab.sch.nam, s.tab.nam, s.nam, s.format(value), whe))
-	xlog.Fatalln(err)
-}
+// 	v := ""
 
-// Order by asc.
-func (s *String) Asc(columns ...column) *order {
-	o := &order{asc: true, tab: s.tab}
-	o.add(s)
-	o.add(columns...)
-	return o
-}
+// 	if t.wo != nil && t.wv != nil {
+// 		v = t.nm + " " + *t.wo + " " + *t.wv
+// 	}
 
-// Order by desc.
-func (s *String) Desc(columns ...column) *order {
-	o := &order{asc: false, tab: s.tab}
-	o.add(s)
-	o.add(columns...)
-	return o
-}
+// 	if t.wu != nil {
+// 		v += " " + *t.wu
+// 	}
 
-// Returns a pointer to object where with operator "=" as equal.
-func (s *String) Equal(value string) *where {
-	return &where{col: s, ope: "=", val: s.format(value)}
-}
+// 	return v
+// }
 
-// Returns a pointer to object where with operator "IN".
-func (s *String) In(values ...string) *where {
+// // Returns a pointer to a buffer.
+// func (t *timestamp) bff() any {
+// 	return &t.rw
+// }
 
-	str := make([]string, len(values))
-
-	for i := 0; i < len(values); i++ {
-		str[i] = s.format(values[i])
-	}
-
-	return &where{col: s, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
-}
-
-// Returns a pointer to object where with operator ">" 	greater than.
-func (s *String) Greater(value string) *where {
-	return &where{col: s, ope: ">", val: s.format(value)}
-}
-
-// Returns a pointer to object where with operator "<" less than.
-func (s *String) Less(value string) *where {
-	return &where{col: s, ope: "<", val: s.format(value)}
-}
-
-// Returns a pointer to object where with operator ">=" greater than or equal.
-func (s *String) GreaterOrEqual(value string) *where {
-	return &where{col: s, ope: ">=", val: s.format(value)}
-}
-
-// Returns a pointer to object where with operator "<=" less than or equal.
-func (s *String) LessOrEqual(value string) *where {
-	return &where{col: s, ope: "<=", val: s.format(value)}
-}
-
-// Returns a pointer to object where with operator "<> or !=" not equal.
-func (s *String) NotEqual(value string) *where {
-	return &where{col: s, ope: "<> or !=", val: s.format(value)}
-}
-
-func (s *String) format(value string) string {
-	return fmt.Sprintf("'%s'", value)
-}
-
-// Returns sql type for this column.
-func (String) sql() string {
-	return "TEXT"
-}
-
-// Returns a pointer to a buffer variable.
-func (s *String) pointer() any {
-	return &s.Row
-}
-
-/*
-Type "Time", corresponds to the type number in SQL "TIMESTAMP",
-this type is child from type "col" and
-partially implements the interface "column".
-*/
-
-type Time struct {
-	Row time.Time // Row for select buffer.
-	col           // Base column.
-}
-
-// Creates object type time.Time corresponding in sql as timestamp.
-func (t *Table) Time(name string, primary bool) *Time {
-	typ := &Time{col: col{nam: name, pri: primary, tab: t}}
-	t.associate(typ)
-	return typ
-}
-
-// Adds a row to the buffer before inserting.
-func (t *Time) Insert(value time.Time) {
-	t.tab.insert(t, t.format(value.UTC()))
-}
-
-// Updates the value in a column.
-func (t *Time) Update(value time.Time, where *where) {
-
-	whe := ""
-	if where != nil {
-		whe = " " + where.sql()
-	}
-	_, err := t.tab.sch.dat.trx.Exec(fmt.Sprintf("UPDATE %s.%s SET %s = %s%s;", t.tab.sch.nam, t.tab.nam, t.nam, t.format(value), whe))
-	xlog.Fatalln(err)
-}
-
-// Order by asc.
-func (t *Time) Asc(columns ...column) *order {
-	o := &order{asc: true, tab: t.tab}
-	o.add(t)
-	o.add(columns...)
-	return o
-}
-
-// Order by desc.
-func (t *Time) Desc(columns ...column) *order {
-	o := &order{asc: false, tab: t.tab}
-	o.add(t)
-	o.add(columns...)
-	return o
-}
-
-// Returns a pointer to object where with operator "=" as equal.
-func (t *Time) Equal(value time.Time) *where {
-	return &where{col: t, ope: "=", val: t.format(value)}
-}
-
-// Returns a pointer to object where with operator "IN".
-func (t *Time) In(values ...time.Time) *where {
-
-	str := make([]string, len(values))
-
-	for vid := 0; vid < len(values); vid++ {
-		str[vid] = t.format(values[vid])
-	}
-
-	return &where{col: t, ope: "IN", val: "(" + strings.Join(str, ", ") + ")"}
-}
-
-// Returns a pointer to object where with operator ">" 	greater than.
-func (t *Time) Greater(value time.Time) *where {
-	return &where{col: t, ope: ">", val: t.format(value)}
-}
-
-// Returns a pointer to object where with operator "<" less than.
-func (t *Time) Less(value time.Time) *where {
-	return &where{col: t, ope: "<", val: t.format(value)}
-}
-
-// Returns a pointer to object where with operator ">=" greater than or equal.
-func (t *Time) GreaterOrEqual(value time.Time) *where {
-	return &where{col: t, ope: ">=", val: t.format(value)}
-}
-
-// Returns a pointer to object where with operator "<=" less than or equal.
-func (t *Time) LessOrEqual(value time.Time) *where {
-	return &where{col: t, ope: "<=", val: t.format(value)}
-}
-
-// Returns a pointer to object where with operator "<> or !=" not equal.
-func (t *Time) NotEqual(value time.Time) *where {
-	return &where{col: t, ope: "<> or !=", val: t.format(value)}
-}
-
-func (t *Time) format(value time.Time) string {
-	return fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-}
-
-// Returns sql type for this column.
-func (Time) sql() string {
-	return "TIMESTAMP WITHOUT TIME ZONE"
-}
-
-// Returns a pointer to a buffer variable.
-func (t *Time) pointer() any {
-	return &t.Row
-}
+// // Returns postgresql type for this column.
+// func (timestamp) pgt() string {
+// 	return "TIMESTAMP WITHOUT TIME ZONE"
+// }
