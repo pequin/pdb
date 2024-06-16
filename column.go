@@ -3,6 +3,8 @@ package pdb
 import (
 	"fmt"
 	"time"
+
+	"github.com/pequin/xlog"
 )
 
 /*
@@ -22,8 +24,8 @@ limitations under the License.
 */
 
 type column interface {
-	nam() string // Returns name of column .
-	buf() any    // Create and returm pointer to buffer.
+	nam() string // Returns name of the column.
+	buf() any    // Creates pointer to buffer and and returns pointer to it.
 }
 
 /*
@@ -32,28 +34,22 @@ this type implements the interface "column".
 */
 type Bool string
 type whereBool struct {
-	whr *where
+	*where
 }
 
 // Returns value from buffer.
 func (b Bool) Row(reader *reader) bool {
-	return *reader.buf[reader.rid[b]].(*bool)
+
+	idx, ise := reader.idx[b]
+	if !ise {
+		xlog.Fatallf("The column \"%s\" is not associated with the reader.", b.nam())
+	}
+	return *reader.buf[idx].(*bool)
 }
 
-// Creates new object whereBool and return pointer to it.
-func (b Bool) Where() *whereBool {
-	return &whereBool{whr: &where{col: b}}
-}
-
-func (w *whereBool) Equal(value bool) *where {
-	w.whr.opr = "="
-	w.whr.val = fmt.Sprintf("%t", value)
-	return w.whr
-}
-func (w *whereBool) NotEqual(value bool) *where {
-	w.whr.opr = "<>"
-	w.whr.val = fmt.Sprintf("%t", value)
-	return w.whr
+// Makes new object whereString and returns pointer to it.
+func (b *Bool) Where() *whereBool {
+	return &whereBool{where: &where{col: b}}
 }
 
 // Returns name for this column.
@@ -61,9 +57,28 @@ func (b Bool) nam() string {
 	return string(b)
 }
 
-// Creates and returm pointer to buffer.
+// Creates and returms pointer to buffer.
 func (Bool) buf() any {
 	return new(bool)
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (w *whereBool) Equal(value bool) *where {
+	w.where.opr = "="
+	w.where.val = fmt.Sprintf("%t", value)
+	return w.where
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (w *whereBool) NotEqual(value bool) *where {
+	w.where.opr = "<>"
+	w.where.val = fmt.Sprintf("%t", value)
+	return w.where
+}
+
+// Updates custom value.
+func (w *whereBool) Value(v bool) {
+	w.val = fmt.Sprintf("%t", v)
 }
 
 /*
@@ -72,48 +87,22 @@ this type implements the interface "column".
 */
 type String string
 type whereString struct {
-	whr *where
+	*where
 }
 
 // Returns value from buffer.
 func (s String) Row(reader *reader) string {
-	return *reader.buf[reader.rid[s]].(*string)
+
+	idx, ise := reader.idx[s]
+	if !ise {
+		xlog.Fatallf("The column \"%s\" is not associated with the reader.", s.nam())
+	}
+	return *reader.buf[idx].(*string)
 }
 
-// Creates new object whereString and return pointer to it.
-func (s String) Where() *whereString {
-	return &whereString{whr: &where{col: s}}
-}
-
-func (w *whereString) Less(value string) *where {
-	w.whr.opr = "<"
-	w.whr.val = value
-	return w.whr
-}
-func (w *whereString) LessOrEqual(value string) *where {
-	w.whr.opr = "<="
-	w.whr.val = value
-	return w.whr
-}
-func (w *whereString) Equal(value string) *where {
-	w.whr.opr = "="
-	w.whr.val = value
-	return w.whr
-}
-func (w *whereString) NotEqual(value string) *where {
-	w.whr.opr = "<>"
-	w.whr.val = value
-	return w.whr
-}
-func (w *whereString) Greater(value string) *where {
-	w.whr.opr = ">"
-	w.whr.val = value
-	return w.whr
-}
-func (w *whereString) GreaterOrEqual(value string) *where {
-	w.whr.opr = ">="
-	w.whr.val = value
-	return w.whr
+// Makes new object whereString and returns pointer to it.
+func (s *String) Where() *whereString {
+	return &whereString{where: &where{col: s}}
 }
 
 // Returns name for this column.
@@ -121,9 +110,49 @@ func (s String) nam() string {
 	return string(s)
 }
 
-// Creates and returm pointer to buffer.
+// Creates and returms pointer to buffer.
 func (String) buf() any {
 	return new(string)
+}
+
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (w *whereString) LessOrEqual(value string) *where {
+	w.where.opr = "<="
+	w.where.val = value
+	return w.where
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (w *whereString) Equal(value string) *where {
+	w.where.opr = "="
+	w.where.val = value
+	return w.where
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (w *whereString) NotEqual(value string) *where {
+	w.where.opr = "<>"
+	w.where.val = value
+	return w.where
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (w *whereString) Greater(value string) *where {
+	w.where.opr = ">"
+	w.where.val = value
+	return w.where
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (w *whereString) GreaterOrEqual(value string) *where {
+	w.where.opr = ">="
+	w.where.val = value
+	return w.where
+}
+
+// Updates custom value.
+func (w *whereString) Value(v string) {
+	w.val = v
 }
 
 /*
@@ -132,48 +161,22 @@ this type implements the interface "column".
 */
 type Int64 string
 type whereInt64 struct {
-	whr *where
+	*where
 }
 
 // Returns value from buffer.
 func (i Int64) Row(reader *reader) int64 {
-	return *reader.buf[reader.rid[i]].(*int64)
+
+	idx, ise := reader.idx[i]
+	if !ise {
+		xlog.Fatallf("The column \"%s\" is not associated with the reader.", i.nam())
+	}
+	return *reader.buf[idx].(*int64)
 }
 
-// Creates new object whereInt64 and return pointer to it.
-func (i Int64) Where() *whereInt64 {
-	return &whereInt64{whr: &where{col: i}}
-}
-
-func (w *whereInt64) Less(value int64) *where {
-	w.whr.opr = "<"
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
-}
-func (w *whereInt64) LessOrEqual(value int64) *where {
-	w.whr.opr = "<="
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
-}
-func (w *whereInt64) Equal(value int64) *where {
-	w.whr.opr = "="
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
-}
-func (w *whereInt64) NotEqual(value int64) *where {
-	w.whr.opr = "<>"
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
-}
-func (w *whereInt64) Greater(value int64) *where {
-	w.whr.opr = ">"
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
-}
-func (w *whereInt64) GreaterOrEqual(value int64) *where {
-	w.whr.opr = ">="
-	w.whr.val = fmt.Sprintf("%d", value)
-	return w.whr
+// Makes new object whereByInt64 and returns pointer to it.
+func (i *Int64) Where() *whereInt64 {
+	return &whereInt64{where: &where{col: i}}
 }
 
 // Returns name for this column.
@@ -181,9 +184,49 @@ func (i Int64) nam() string {
 	return string(i)
 }
 
-// Creates and returm pointer to buffer.
+// Creates and returms pointer to buffer.
 func (Int64) buf() any {
 	return new(int64)
+}
+
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (w *whereInt64) LessOrEqual(value int64) *where {
+	w.where.opr = "<="
+	w.where.val = fmt.Sprintf("%d", value)
+	return w.where
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (w *whereInt64) Equal(value int64) *where {
+	w.where.opr = "="
+	w.where.val = fmt.Sprintf("%d", value)
+	return w.where
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (w *whereInt64) NotEqual(value int64) *where {
+	w.where.opr = "<>"
+	w.where.val = fmt.Sprintf("%d", value)
+	return w.where
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (w *whereInt64) Greater(value int64) *where {
+	w.where.opr = ">"
+	w.where.val = fmt.Sprintf("%d", value)
+	return w.where
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (w *whereInt64) GreaterOrEqual(value int64) *where {
+	w.where.opr = ">="
+	w.where.val = fmt.Sprintf("%d", value)
+	return w.where
+}
+
+// Updates custom value.
+func (w *whereInt64) Value(v int64) {
+	w.val = fmt.Sprintf("%d", v)
 }
 
 /*
@@ -192,48 +235,22 @@ this type implements the interface "column".
 */
 type Float64 string
 type whereFloat64 struct {
-	whr *where
+	*where
 }
 
 // Returns value from buffer.
 func (f Float64) Row(reader *reader) float64 {
-	return *reader.buf[reader.rid[f]].(*float64)
+
+	idx, ise := reader.idx[f]
+	if !ise {
+		xlog.Fatallf("The column \"%s\" is not associated with the reader.", f.nam())
+	}
+	return *reader.buf[idx].(*float64)
 }
 
-// Creates new object whereFloat64 and return pointer to it.
-func (f Float64) Where() *whereFloat64 {
-	return &whereFloat64{whr: &where{col: f}}
-}
-
-func (w *whereFloat64) Less(value float64) *where {
-	w.whr.opr = "<"
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
-}
-func (w *whereFloat64) LessOrEqual(value float64) *where {
-	w.whr.opr = "<="
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
-}
-func (w *whereFloat64) Equal(value float64) *where {
-	w.whr.opr = "="
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
-}
-func (w *whereFloat64) NotEqual(value float64) *where {
-	w.whr.opr = "<>"
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
-}
-func (w *whereFloat64) Greater(value float64) *where {
-	w.whr.opr = ">"
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
-}
-func (w *whereFloat64) GreaterOrEqual(value float64) *where {
-	w.whr.opr = ">="
-	w.whr.val = fmt.Sprintf("%f", value)
-	return w.whr
+// Makes new object whereFloat64 and returns pointer to it.
+func (f *Float64) Where() *whereFloat64 {
+	return &whereFloat64{where: &where{col: f}}
 }
 
 // Returns name for this column.
@@ -241,9 +258,49 @@ func (f Float64) nam() string {
 	return string(f)
 }
 
-// Create and returm pointer to buffer.
+// Create and returms pointer to buffer.
 func (Float64) buf() any {
 	return new(float64)
+}
+
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (w *whereFloat64) LessOrEqual(value float64) *where {
+	w.where.opr = "<="
+	w.where.val = fmt.Sprintf("%f", value)
+	return w.where
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (w *whereFloat64) Equal(value float64) *where {
+	w.where.opr = "="
+	w.where.val = fmt.Sprintf("%f", value)
+	return w.where
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (w *whereFloat64) NotEqual(value float64) *where {
+	w.where.opr = "<>"
+	w.where.val = fmt.Sprintf("%f", value)
+	return w.where
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (w *whereFloat64) Greater(value float64) *where {
+	w.where.opr = ">"
+	w.where.val = fmt.Sprintf("%f", value)
+	return w.where
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (w *whereFloat64) GreaterOrEqual(value float64) *where {
+	w.where.opr = ">="
+	w.where.val = fmt.Sprintf("%f", value)
+	return w.where
+}
+
+// Updates custom value.
+func (w *whereFloat64) Value(v float64) {
+	w.val = fmt.Sprintf("%f", v)
 }
 
 /*
@@ -252,48 +309,22 @@ this type implements the interface "column".
 */
 type Time string
 type whereTime struct {
-	whr *where
+	*where
 }
 
 // Returns value from buffer.
 func (t Time) Row(reader *reader) time.Time {
-	return *reader.buf[reader.rid[t]].(*time.Time)
+
+	idx, ise := reader.idx[t]
+	if !ise {
+		xlog.Fatallf("The column \"%s\" is not associated with the reader.", t.nam())
+	}
+	return *reader.buf[idx].(*time.Time)
 }
 
-// Creates new object whereTime and return pointer to it.
-func (t Time) Where() *whereTime {
-	return &whereTime{whr: &where{col: t}}
-}
-
-func (w *whereTime) Less(value time.Time) *where {
-	w.whr.opr = "<"
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
-}
-func (w *whereTime) LessOrEqual(value time.Time) *where {
-	w.whr.opr = "<="
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
-}
-func (w *whereTime) Equal(value time.Time) *where {
-	w.whr.opr = "="
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
-}
-func (w *whereTime) NotEqual(value time.Time) *where {
-	w.whr.opr = "<>"
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
-}
-func (w *whereTime) Greater(value time.Time) *where {
-	w.whr.opr = ">"
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
-}
-func (w *whereTime) GreaterOrEqual(value time.Time) *where {
-	w.whr.opr = ">="
-	w.whr.val = fmt.Sprintf("'%d-%02d-%02d %02d:%02d:%02d.%d'", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.whr
+// Makes new object whereTime and returns pointer to it.
+func (t *Time) Where() *whereTime {
+	return &whereTime{where: &where{col: t}}
 }
 
 // Returns name for this column.
@@ -301,7 +332,47 @@ func (t Time) nam() string {
 	return string(t)
 }
 
-// Create and returm pointer to buffer.
+// Create and returms pointer to buffer.
 func (Time) buf() any {
 	return new(time.Time)
+}
+
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (w *whereTime) LessOrEqual(value time.Time) *where {
+	w.where.opr = "<="
+	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+	return w.where
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (w *whereTime) Equal(value time.Time) *where {
+	w.where.opr = "="
+	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+	return w.where
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (w *whereTime) NotEqual(value time.Time) *where {
+	w.where.opr = "<>"
+	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+	return w.where
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (w *whereTime) Greater(value time.Time) *where {
+	w.where.opr = ">"
+	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+	return w.where
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (w *whereTime) GreaterOrEqual(value time.Time) *where {
+	w.where.opr = ">="
+	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+	return w.where
+}
+
+// Updates custom value.
+func (w *whereTime) Value(v time.Time) {
+	w.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", v.Year(), v.Month(), v.Day(), v.Hour(), v.Minute(), v.Second(), v.Nanosecond())
 }

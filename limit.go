@@ -20,7 +20,7 @@ limitations under the License.
 
 type limit uint64
 
-func (l limit) query() string {
+func (l limit) string() string {
 
 	sql := "NULL"
 	if l > 0 {

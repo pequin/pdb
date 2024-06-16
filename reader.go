@@ -24,67 +24,87 @@ import (
 // */
 
 type reader struct {
-	Sort   sort           // Specifies the sort order.
-	Offset offset         // Skip that many rows before beginning to return rows.
-	Limit  limit          // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
-	thd    *thread        // Thread.
-	tab    *table         // Table.
-	flt    *filter        // Filter.
-	rid    map[column]int // Rows.
-	buf    []any          // Buffer.
+	tbl *table         // Table.
+	col []column       // Columns.
+	flt *filter        // Filter.
+	srt *sort          // Specifies the sort order.
+	off offset         // Skip that many rows before beginning to return rows.
+	lim limit          // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
+	idx map[column]int // Column indexes.
+	buf []any          // Buffer.
 }
 
-// Returms new reader for context.
-func (t *thread) Reader(table *table) *reader {
+// Makes new reader and returns pointer to it.
+func (t *table) Reader(columns ...column) *reader {
 
-	rad := &reader{Sort: make(sort), Offset: 0, Limit: 0, thd: t, tab: table, rid: make(map[column]int), buf: make([]any, len(table.col))}
-
-	for i := 0; i < len(table.col); i++ {
-		rad.rid[table.col[i]] = i
-		rad.buf[i] = table.col[i].buf()
+	if len(columns) < 1 {
+		xlog.Fatalln("When creating new reader, you must specify at least one column.")
 	}
-	t.begin()
 
-	return rad
+	r := &reader{tbl: t, col: columns, off: 0, lim: 0, srt: nil, flt: nil, idx: make(map[column]int), buf: make([]any, len(columns))}
+
+	for i := 0; i < len(r.col); i++ {
+		r.idx[r.col[i]] = i
+		r.buf[i] = r.col[i].buf()
+	}
+
+	return r
 }
 
-func (r *reader) Filter(filter *filter) {
-	r.flt = filter
+func (r *reader) Filter(where *where) *filter {
+
+	r.flt = &filter{whr: where}
+
+	return r.flt
 }
-func (r *reader) query() string {
 
-	arg := make([]string, 0)
+func (r *reader) Sort() *sort {
+	if r.srt == nil {
+		r.srt = &sort{ord: make([]order, 0)}
+	}
+	return r.srt
+}
 
-	if r.flt != nil {
-		arg = append(arg, r.flt.query(r.tab))
+func (r *reader) Limit(value uint64) {
+	r.lim = limit(value)
+}
+
+func (r *reader) Offset(value uint64) {
+	r.off = offset(value)
+}
+
+func (r *reader) from(table *table) string {
+
+	str := make([]string, len(r.col))
+
+	for i := 0; i < len(r.col); i++ {
+		str[i] = fmt.Sprintf("%s.%s", table.from(), r.col[i].nam())
 	}
 
-	arg = append(arg, r.Sort.query(r.tab))
-	arg = append(arg, r.Limit.query())
-	arg = append(arg, r.Offset.query())
+	return "SELECT " + strings.Join(str, ", ") + " FROM " + table.from()
+}
 
-	sql := fmt.Sprintf("SELECT %s FROM %s", r.tab.columns(), r.tab.from())
+func (r *reader) string() string {
 
-	if len(arg) > 0 {
-		sql += " " + strings.TrimSpace(strings.Join(arg, " "))
-	}
+	frm := r.from(r.tbl)
+	flt := r.flt.string(r.tbl)
+	srt := r.srt.string(r.tbl)
+	lim := r.lim.string()
+	off := r.off.string()
 
-	sql += ";"
-
-	return sql
+	return strings.Join([]string{frm, flt, srt, lim, off}, " ") + ";"
 }
 
 func (r *reader) Read(row func()) {
 
-	rws, err := r.thd.trx.Query(r.query())
-	xlog.Fatalln(err)
+	if row != nil && r.tbl.stx != nil {
 
-	defer rws.Close()
+		rws, err := r.tbl.stx.Query(r.string())
+		xlog.Fatalln(err)
+		defer rws.Close()
 
-	for rws.Next() {
-		xlog.Fatalln(rws.Scan(r.buf...))
-
-		if row != nil {
+		for rws.Next() {
+			xlog.Fatalln(rws.Scan(r.buf...))
 			row()
 		}
 	}

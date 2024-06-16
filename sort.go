@@ -21,34 +21,42 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Map of specifies the sort order by column, true is ASC.
-type sort map[column]bool
-
-func (s sort) Asc(by column) {
-	s[by] = true
+type order struct {
+	col column // Column.
+	asc bool   // Logic for order by - true is as asc, false is as desc.
 }
-func (s sort) Desc(by column) {
-	s[by] = false
+type sort struct {
+	ord []order
 }
 
-func (s sort) query(table *table) string {
+func (s *sort) Asc(by column) {
+	s.ord = append(s.ord, order{col: by, asc: true})
 
-	itm := make([]string, 0)
+}
+func (s *sort) Desc(by column) {
+	s.ord = append(s.ord, order{col: by, asc: false})
+}
 
-	sql := ""
+func (s *sort) string(table *table) string {
 
-	for c, b := range s {
+	if s == nil {
+		return ""
+	}
 
-		if b {
-			itm = append(itm, fmt.Sprintf("%s.%s ASC", table.from(), c.nam()))
+	str := make([]string, 0)
+
+	log := ""
+
+	for i := 0; i < len(s.ord); i++ {
+
+		if s.ord[i].asc {
+			log = "ASC"
 		} else {
-			itm = append(itm, fmt.Sprintf("%s.%s DESC", table.from(), c.nam()))
+			log = "DESC"
 		}
+
+		str = append(str, fmt.Sprintf("%s.%s %s", table.from(), s.ord[i].col.nam(), log))
 	}
 
-	if len(itm) > 0 {
-		sql = fmt.Sprintf("ORDER BY %s", strings.Join(itm, ", "))
-	}
-
-	return sql
+	return "ORDER BY " + strings.Join(str, ", ")
 }

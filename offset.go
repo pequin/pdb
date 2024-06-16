@@ -20,7 +20,7 @@ limitations under the License.
 
 type offset uint64
 
-func (o offset) query() string {
+func (o offset) string() string {
 
 	sql := "NULL"
 	if o > 0 {

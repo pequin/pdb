@@ -1,7 +1,6 @@
 package pdb
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 
@@ -26,41 +25,11 @@ limitations under the License.
 */
 
 type database struct {
-	dba *sql.DB // Database.
-	// *sql.Tx // Transaction.
-	// nme string  // Name.
-	// usr string  // User.
-	// pwd string  // Password.
-	// hst string  // Host.
-	// prt uint64  // Port.
-
-	// trx *sql.Tx // Transaction.
-	// isb bool    // Is bnegin started a transaction.
+	dba *sql.DB
 }
 
-// Connect to the PostgreSQL database.
 func Database(name, user, password, host string, port uint64) *database {
 	d, e := sql.Open("postgres", fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, name))
 	xlog.Fatalln(e)
 	return &database{dba: d}
-}
-
-type thread struct {
-	dba *sql.DB         // Database.
-	ctx context.Context // Context.
-	trx *sql.Tx         // Transaction.
-}
-
-// Created new thread for transaction.
-func (d *database) Thread() *thread {
-	return &thread{dba: d.dba, ctx: context.Background()}
-}
-
-func (t *thread) begin() {
-
-	if t.trx == nil {
-		trx, err := t.dba.BeginTx(t.ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
-		xlog.Fatalln(err)
-		t.trx = trx
-	}
 }

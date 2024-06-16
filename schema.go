@@ -1,5 +1,12 @@
 package pdb
 
+import (
+	"context"
+	"database/sql"
+
+	"github.com/pequin/xlog"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -17,15 +24,17 @@ limitations under the License.
 */
 
 type schema struct {
-	nme string // Name.
-	// dba *database // Database.
+	nme string    // Name.
+	con *sql.Conn // Connection to database.
 }
 
 func (d *database) Schema(name string) *schema {
+
+	con, err := d.dba.Conn(context.Background())
+	xlog.Fatalln(err)
 	// _, err := d.dba.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
-	// xlog.Fatalln(err)
 	// return &schema{nme: name, dba: d}
-	return &schema{nme: name}
+	return &schema{nme: name, con: con}
 }
 
 // func (s *schema) Table(name string) *table {

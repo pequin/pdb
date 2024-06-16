@@ -1,8 +1,11 @@
 package pdb
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
-	"strings"
+
+	"github.com/pequin/xlog"
 )
 
 /*
@@ -21,36 +24,85 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//	type structure struct {
+//		tbl *table   // Table.
+//		col []column // Columns.
+//		// ind map[column]int // Column indexes.
+//		// col map[column]int // Columns.
+//	}
 type table struct {
-	nme string // Name.
-	// transaction.
-	dbs *schema  // Database schema.
-	col []column // Columns.
-	// nc []string // Names of columns.
-	// tc []string // Types of columns.
+	nme string  // Name.
+	sdb *schema // Schema of database.
+	stx *sql.Tx // Transaction.
 }
 
-func (s *schema) Table(name string, columns ...column) *table {
+func (s *schema) Table(name string) *table {
+	return &table{nme: name, sdb: s}
+}
 
-	return &table{nme: name, dbs: s, col: columns}
+// Begin starts a transaction and rolls back the previous transaction.
+func (t *table) Begin() {
+
+	if t.stx != nil {
+		t.stx.Rollback()
+	}
+
+	stx, err := t.sdb.con.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
+	xlog.Fatalln(err)
+	t.stx = stx
 }
 
 // Returns the string which includes the name of the scheme and table.
 func (t *table) from() string {
-	return fmt.Sprintf("%s.%s", t.dbs.nme, t.nme)
+	return fmt.Sprintf("%s.%s", t.sdb.nme, t.nme)
 }
+
+// func (t *table) Structure() *structure {
+// 	return &structure{tbl: t, col: make([]column, 0)}
+// }
+
+// func (s *structure) indexOfColumn(col column) int {
+
+// 	for i := 0; i < len(s.col); i++ {
+// 		if col == s.col[i] {
+// 			return i
+// 		}
+// 	}
+
+// 	return -1
+// }
+
+// func (s *structure) columnByIndex(ind int) column {
+// 	return nil
+// }
+
+// // primary key
+// func (s *structure) Column(col column, primary bool) {
+
+// 	idx := s.indexOfColumn(col)
+
+// 	fmt.Println("dbf", idx)
+
+// 	s.col = append(s.col, col)
+
+// 	// heap.
+// 	// 	fmt.Println("gfn", c)
+// 	// s.col[c] = 1
+// }
 
 // Returns the names of the columns.
-func (t *table) columns() string {
+// func (t *table) columns() string {
 
-	col := make([]string, len(t.col))
+// 	col := make([]string, len(t.col))
 
-	for i := 0; i < len(t.col); i++ {
-		col[i] = t.from() + "." + t.col[i].nam()
-	}
+// 	for i := 0; i < len(t.col); i++ {
+// 		col[i] = t.from() + "." + t.col[i].nam()
+// 	}
 
-	return strings.Join(col, ", ")
-}
+// 	return strings.Join(col, ", ")
+// }
+
+//////////////////////////////////////////////////////////////////////
 
 // type reader struct {
 // 	rtx *rtx            // Context for read transaction.
