@@ -55,7 +55,7 @@ func (s *sort) string(table *table) string {
 			log = "DESC"
 		}
 
-		str = append(str, fmt.Sprintf("%s.%s %s", table.from(), s.ord[i].col.nam(), log))
+		str = append(str, fmt.Sprintf("%s.%s %s", table.name(), s.ord[i].col.nam(), log))
 	}
 
 	return "ORDER BY " + strings.Join(str, ", ")

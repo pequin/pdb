@@ -2,6 +2,7 @@ package pdb
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pequin/xlog"
@@ -26,6 +27,7 @@ limitations under the License.
 type column interface {
 	nam() string // Returns name of the column.
 	buf() any    // Creates pointer to buffer and and returns pointer to it.
+	tpe() string // Returns postgresql type for this column.
 }
 
 /*
@@ -54,12 +56,17 @@ func (b *Bool) Where() *whereBool {
 
 // Returns name for this column.
 func (b Bool) nam() string {
-	return string(b)
+	return strings.ToLower(string(b))
 }
 
 // Creates and returms pointer to buffer.
 func (Bool) buf() any {
 	return new(bool)
+}
+
+// Returns postgresql type for this column.
+func (Bool) tpe() string {
+	return "BOOLEAN"
 }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
@@ -107,12 +114,17 @@ func (s *String) Where() *whereString {
 
 // Returns name for this column.
 func (s String) nam() string {
-	return string(s)
+	return strings.ToLower(string(s))
 }
 
 // Creates and returms pointer to buffer.
 func (String) buf() any {
 	return new(string)
+}
+
+// Returns postgresql type for this column.
+func (String) tpe() string {
+	return "TEXT"
 }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
@@ -181,12 +193,17 @@ func (i *Int64) Where() *whereInt64 {
 
 // Returns name for this column.
 func (i Int64) nam() string {
-	return string(i)
+	return strings.ToLower(string(i))
 }
 
 // Creates and returms pointer to buffer.
 func (Int64) buf() any {
 	return new(int64)
+}
+
+// Returns postgresql type for this column.
+func (Int64) tpe() string {
+	return "BIGINT"
 }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
@@ -255,12 +272,17 @@ func (f *Float64) Where() *whereFloat64 {
 
 // Returns name for this column.
 func (f Float64) nam() string {
-	return string(f)
+	return strings.ToLower(string(f))
 }
 
 // Create and returms pointer to buffer.
 func (Float64) buf() any {
 	return new(float64)
+}
+
+// Returns postgresql type for this column.
+func (Float64) tpe() string {
+	return "NUMERIC"
 }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
@@ -329,12 +351,17 @@ func (t *Time) Where() *whereTime {
 
 // Returns name for this column.
 func (t Time) nam() string {
-	return string(t)
+	return strings.ToLower(string(t))
 }
 
 // Create and returms pointer to buffer.
 func (Time) buf() any {
 	return new(time.Time)
+}
+
+// Returns postgresql type for this column.
+func (Time) tpe() string {
+	return "TIMESTAMP WITHOUT TIME ZONE"
 }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.

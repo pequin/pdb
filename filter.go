@@ -50,7 +50,7 @@ func (f *filter) string(table *table) string {
 		return ""
 	}
 
-	str := []string{fmt.Sprintf("%s.%s %s '%s'", table.from(), f.whr.col.nam(), f.whr.opr, f.whr.val)}
+	str := []string{fmt.Sprintf("%s.%s %s '%s'", table.name(), f.whr.col.nam(), f.whr.opr, f.whr.val)}
 
 	log := ""
 	for i := 0; i < len(f.nxt); i++ {
@@ -60,7 +60,7 @@ func (f *filter) string(table *table) string {
 		} else {
 			log = "OR"
 		}
-		str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.from(), f.nxt[i].col.nam(), f.nxt[i].opr, f.nxt[i].val))
+		str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].col.nam(), f.nxt[i].opr, f.nxt[i].val))
 	}
 
 	return "WHERE " + strings.Join(str, " ")

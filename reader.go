@@ -78,10 +78,10 @@ func (r *reader) from(table *table) string {
 	str := make([]string, len(r.col))
 
 	for i := 0; i < len(r.col); i++ {
-		str[i] = fmt.Sprintf("%s.%s", table.from(), r.col[i].nam())
+		str[i] = fmt.Sprintf("%s.%s", table.name(), r.col[i].nam())
 	}
 
-	return "SELECT " + strings.Join(str, ", ") + " FROM " + table.from()
+	return "SELECT " + strings.Join(str, ", ") + " FROM " + table.name()
 }
 
 func (r *reader) string() string {

@@ -3,6 +3,7 @@ package pdb
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/pequin/xlog"
 )
@@ -32,9 +33,7 @@ func (d *database) Schema(name string) *schema {
 
 	con, err := d.dba.Conn(context.Background())
 	xlog.Fatalln(err)
-	// _, err := d.dba.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", name))
-	// return &schema{nme: name, dba: d}
-	return &schema{nme: name, con: con}
+	return &schema{nme: strings.ToLower(name), con: con}
 }
 
 // func (s *schema) Table(name string) *table {
