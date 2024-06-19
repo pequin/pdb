@@ -42,7 +42,7 @@ type whereBool struct {
 // Returns value from buffer.
 func (b Bool) Row(reader *reader) bool {
 
-	idx, ise := reader.idx[b]
+	idx, ise := reader.tbl.idx[b]
 	if !ise {
 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", b.nam())
 	}
@@ -100,7 +100,7 @@ type whereString struct {
 // Returns value from buffer.
 func (s String) Row(reader *reader) string {
 
-	idx, ise := reader.idx[s]
+	idx, ise := reader.tbl.idx[s]
 	if !ise {
 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", s.nam())
 	}
@@ -179,11 +179,20 @@ type whereInt64 struct {
 // Returns value from buffer.
 func (i Int64) Row(reader *reader) int64 {
 
-	idx, ise := reader.idx[i]
+	idx, ise := reader.tbl.idx[i]
 	if !ise {
 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", i.nam())
 	}
 	return *reader.buf[idx].(*int64)
+}
+
+type into struct {
+	col string
+	val any
+}
+
+func (i *Int64) Into(value int64) into {
+	return into{col: i.nam(), val: value}
 }
 
 // Makes new object whereByInt64 and returns pointer to it.
@@ -258,7 +267,7 @@ type whereFloat64 struct {
 // Returns value from buffer.
 func (f Float64) Row(reader *reader) float64 {
 
-	idx, ise := reader.idx[f]
+	idx, ise := reader.tbl.idx[f]
 	if !ise {
 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", f.nam())
 	}
@@ -337,7 +346,7 @@ type whereTime struct {
 // Returns value from buffer.
 func (t Time) Row(reader *reader) time.Time {
 
-	idx, ise := reader.idx[t]
+	idx, ise := reader.tbl.idx[t]
 	if !ise {
 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", t.nam())
 	}

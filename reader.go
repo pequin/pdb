@@ -24,28 +24,21 @@ import (
 // */
 
 type reader struct {
-	tbl *table         // Table.
-	col []column       // Columns.
-	flt *filter        // Filter.
-	srt *sort          // Specifies the sort order.
-	off offset         // Skip that many rows before beginning to return rows.
-	lim limit          // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
-	idx map[column]int // Column indexes.
-	buf []any          // Buffer.
+	tbl *table  // Table.
+	flt *filter // Filter.
+	srt *sort   // Specifies the sort order.
+	off offset  // Skip that many rows before beginning to return rows.
+	lim limit   // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
+	buf []any   // Buffer.
 }
 
 // Makes new reader and returns pointer to it.
-func (t *table) Reader(columns ...column) *reader {
+func (t *table) Reader() *reader {
 
-	if len(columns) < 1 {
-		xlog.Fatalln("When creating new reader, you must specify at least one column.")
-	}
+	r := &reader{tbl: t, off: 0, lim: 0, srt: nil, flt: nil, buf: make([]any, len(t.col))}
 
-	r := &reader{tbl: t, col: columns, off: 0, lim: 0, srt: nil, flt: nil, idx: make(map[column]int), buf: make([]any, len(columns))}
-
-	for i := 0; i < len(r.col); i++ {
-		r.idx[r.col[i]] = i
-		r.buf[i] = r.col[i].buf()
+	for i := 0; i < len(t.col); i++ {
+		r.buf[i] = t.col[i].buf()
 	}
 
 	return r
@@ -73,20 +66,20 @@ func (r *reader) Offset(value uint64) {
 	r.off = offset(value)
 }
 
-func (r *reader) from(table *table) string {
+func (r *reader) from() string {
 
-	str := make([]string, len(r.col))
+	str := make([]string, len(r.tbl.col))
 
-	for i := 0; i < len(r.col); i++ {
-		str[i] = fmt.Sprintf("%s.%s", table.name(), r.col[i].nam())
+	for i := 0; i < len(r.tbl.col); i++ {
+		str[i] = fmt.Sprintf("%s.%s", r.tbl.name(), r.tbl.col[i].nam())
 	}
 
-	return "SELECT " + strings.Join(str, ", ") + " FROM " + table.name()
+	return "SELECT " + strings.Join(str, ", ") + " FROM " + r.tbl.name()
 }
 
 func (r *reader) string() string {
 
-	frm := r.from(r.tbl)
+	frm := r.from()
 	flt := r.flt.string(r.tbl)
 	srt := r.srt.string(r.tbl)
 	lim := r.lim.string()
