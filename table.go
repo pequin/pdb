@@ -26,194 +26,74 @@ limitations under the License.
 */
 
 type table struct {
-	nme string            // Name.
-	sdb *schema           // Schema of database.
-	col []column          // Columns.
-	idx map[column]int    // Column indexes.
-	cpk []column          // Columns of primary keys.
-	uqe []column          // Unique columns.
-	hsh map[column]string // Hash columns.
-	stx *sql.Tx           // Transaction.
+	nme    string  // Name.
+	sdb    *schema // Schema of database.
+	stx    *sql.Tx // Transaction
+	Column structure
+	isi    bool // This table is init
+	// idx map[column]int    // Column indexes.
+	// cpk []column          // Columns of primary keys.
+	// hsh []*Index // Hash columns.
+
 }
 
-func (s *schema) Table(name string, columns ...column) *table {
-	if len(columns) < 1 {
-		xlog.Fatalln("When creating new table, you must specify at least one column.")
-	}
-
-	t := &table{nme: strings.ToLower(name), sdb: s, col: columns, idx: make(map[column]int), hsh: make(map[column]string)}
-
-	for i := 0; i < len(columns); i++ {
-		t.idx[columns[i]] = i
-	}
-
+func (s *schema) Table(name string) *table {
+	t := &table{nme: strings.ToLower(name), sdb: s, isi: false}
+	t.Column.tbl = t
 	t.begin()
-
 	return t
 }
 
-// Begin starts a transaction and rolls back the previous transaction.
-func (t *table) begin() {
-
-	if t.stx != nil {
-		t.stx.Rollback()
-	}
-
-	stx, err := t.sdb.con.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
-	xlog.Fatalln(err)
-	t.stx = stx
-}
-
 // Commit commits the transaction.
-func (t *table) commit() {
+func (t *table) Commit() {
 
 	if t.stx != nil {
+
+		t.init()
 		t.stx.Commit()
 	}
 
 	t.begin()
 }
 
-// Returns the string which includes the name of the scheme and table.
+// Returns the string which includes the name of the scheme and table name.
 func (t *table) name() string {
 	return fmt.Sprintf("%s.%s", t.sdb.nme, t.nme)
 }
 
-func (t *table) Primary(col column) {
+func (t *table) init() {
 
-	idx := t.indexOfColumn(col)
+	if t.isi {
+		hap := make([]string, len(t.Column.hdr)) // Headers and primary keys.
 
-	if idx >= 0 {
-		t.cpk = append(t.cpk, col)
-	} else {
-		xlog.Fatallf("This column \"%s\" is not associated with this structure", col.nam())
-	}
-}
+		for i := 0; i < len(t.Column.hdr); i++ {
+			hap[i] = fmt.Sprintf("%s %s NOT NULL", t.Column.hdr[i].nam, t.Column.hdr[i].pgt)
+		}
 
-func (t *table) Unique(col column) {
+		if s, b := t.Column.primary(); b {
+			hap = append(hap, s)
+		}
 
-	idx := t.indexOfColumn(col)
+		qry := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s; CREATE TABLE IF NOT EXISTS %s (%s);", t.sdb.nme, t.name(), strings.Join(hap, ", "))
+		_, err := t.stx.Exec(qry)
+		xlog.Fatalln(err)
 
-	if idx >= 0 {
-		t.uqe = append(t.uqe, col)
-	} else {
-		xlog.Fatallf("This column \"%s\" is not associated with this structure", col.nam())
-	}
-}
-func (t *table) Hash(name string, col column) {
-
-	idx := t.indexOfColumn(col)
-
-	if idx >= 0 {
-		t.hsh[col] = name
-	} else {
-		xlog.Fatallf("This column \"%s\" is not associated with this structure", col.nam())
-	}
-}
-
-func (t *table) indexOfColumn(col column) int {
-
-	for i := 0; i < len(t.col); i++ {
-		if col == t.col[i] {
-			return i
+		if q, b := t.Column.indexes(); b {
+			_, err := t.stx.Exec(q)
+			xlog.Fatalln(err)
 		}
 	}
 
-	return -1
 }
 
-func (t *table) primaryColimns() string {
+// Begin starts a transaction and rolls back the previous transaction.
+func (t *table) begin() {
+	//
+	// if t.stx != nil {
+	// 	t.stx.Rollback()
+	// }
 
-	if len(t.cpk) < 1 {
-		return ""
-	}
-
-	cpk := make([]string, len(t.cpk))
-
-	for i := 0; i < len(t.cpk); i++ {
-		cpk[i] = t.col[i].nam()
-	}
-
-	return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(cpk, ", "))
-}
-func (t *table) uniqueColumns() string {
-
-	if len(t.uqe) < 1 {
-		return ""
-	}
-
-	idc := make([]string, len(t.uqe))
-
-	for i := 0; i < len(t.uqe); i++ {
-		idc[i] = t.uqe[i].nam()
-	}
-
-	return fmt.Sprintf("UNIQUE (%s)", strings.Join(idc, ", "))
-}
-func (t *table) hashColumns() string {
-
-	if len(t.hsh) < 1 {
-		return ""
-	}
-
-	hsh := make([]string, 0)
-
-	for col, nam := range t.hsh {
-		hsh = append(hsh, fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", nam, t.name(), col.nam()))
-
-	}
-
-	return strings.Join(hsh, " ")
-}
-
-func (t *table) Create() {
-
-	col := make([]string, len(t.col))
-
-	for i := 0; i < len(t.col); i++ {
-		col[i] = fmt.Sprintf("%s %s NOT NULL", t.col[i].nam(), t.col[i].tpe())
-	}
-
-	pmy := t.primaryColimns()
-	uqe := t.uniqueColumns()
-
-	if pmy != "" {
-		pmy = ", " + pmy
-	}
-	if uqe != "" {
-		uqe = ", " + uqe
-	}
-
-	_, err := t.stx.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;CREATE TABLE IF NOT EXISTS %s (%s%s%s);", t.sdb.nme, t.name(), strings.Join(col, ", "), pmy, uqe))
+	stx, err := t.sdb.con.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
 	xlog.Fatalln(err)
-
-	hsh := t.hashColumns()
-
-	if hsh != "" {
-		_, err := t.stx.Exec(hsh)
-		xlog.Fatalln(err)
-	}
-
-	t.commit()
-}
-
-type writer struct {
-	tbl *table // Table.
-	// col []column // Columns.
-	// col map[column][]any // Columns.
-
-	// buf []any
-
-}
-
-// INSERT INTO
-
-func (t *table) Writer() *writer {
-	return &writer{tbl: t}
-}
-
-func (w *writer) Fff(inset ...into) {
-
-	// if _, err := c.database.Exec(sql, setter.values...); err != nil {
-
+	t.stx = stx
 }

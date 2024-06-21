@@ -1,10 +1,5 @@
 package pdb
 
-import (
-	"fmt"
-	"strings"
-)
-
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -46,22 +41,24 @@ func (f *filter) Or(where *where) *filter {
 
 func (f *filter) string(table *table) string {
 
-	if f == nil {
-		return ""
-	}
+	// if f == nil {
+	// 	return ""
+	// }
 
-	str := []string{fmt.Sprintf("%s.%s %s '%s'", table.name(), f.whr.col.nam(), f.whr.opr, f.whr.val)}
+	// str := []string{fmt.Sprintf("%s.%s %s '%s'", table.name(), f.whr.col.nam(), f.whr.opr, f.whr.val)}
 
-	log := ""
-	for i := 0; i < len(f.nxt); i++ {
+	// log := ""
+	// for i := 0; i < len(f.nxt); i++ {
 
-		if f.log[i] {
-			log = "AND"
-		} else {
-			log = "OR"
-		}
-		str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].col.nam(), f.nxt[i].opr, f.nxt[i].val))
-	}
+	// 	if f.log[i] {
+	// 		log = "AND"
+	// 	} else {
+	// 		log = "OR"
+	// 	}
+	// 	str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].col.nam(), f.nxt[i].opr, f.nxt[i].val))
+	// }
 
-	return "WHERE " + strings.Join(str, " ")
+	// return "WHERE " + strings.Join(str, " ")
+
+	return ""
 }

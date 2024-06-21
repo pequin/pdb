@@ -1,7 +1,6 @@
 package pdb
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pequin/xlog"
@@ -35,13 +34,13 @@ type reader struct {
 // Makes new reader and returns pointer to it.
 func (t *table) Reader() *reader {
 
-	r := &reader{tbl: t, off: 0, lim: 0, srt: nil, flt: nil, buf: make([]any, len(t.col))}
+	// r := &reader{tbl: t, off: 0, lim: 0, srt: nil, flt: nil, buf: make([]any, len(t.col))}
 
-	for i := 0; i < len(t.col); i++ {
-		r.buf[i] = t.col[i].buf()
-	}
+	// for i := 0; i < len(t.col); i++ {
+	// 	r.buf[i] = t.col[i].buf()
+	// }
 
-	return r
+	return nil
 }
 
 func (r *reader) Filter(where *where) *filter {
@@ -68,13 +67,15 @@ func (r *reader) Offset(value uint64) {
 
 func (r *reader) from() string {
 
-	str := make([]string, len(r.tbl.col))
+	// str := make([]string, len(r.tbl.col))
 
-	for i := 0; i < len(r.tbl.col); i++ {
-		str[i] = fmt.Sprintf("%s.%s", r.tbl.name(), r.tbl.col[i].nam())
-	}
+	// for i := 0; i < len(r.tbl.col); i++ {
+	// 	str[i] = fmt.Sprintf("%s.%s", r.tbl.name(), r.tbl.col[i].nam())
+	// }
 
-	return "SELECT " + strings.Join(str, ", ") + " FROM " + r.tbl.name()
+	// return "SELECT " + strings.Join(str, ", ") + " FROM " + r.tbl.name()
+
+	return ""
 }
 
 func (r *reader) string() string {
