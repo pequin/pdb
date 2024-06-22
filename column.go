@@ -24,76 +24,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// type column interface {
-// 	nam() string // Returns name of the column.
-// 	buf() any    // Creates pointer to buffer and and returns pointer to it.
-// 	tpe() string // Returns postgresql type for this column.
-// }
-
-// type Index hash
-
-type index struct {
-	nme string // Name of column.
-	opr string // Operator.
-	val string // Value.
-}
-
-func (i *index) NewFilter() *filter {
-	return &filter{idx: i}
-}
-
-func (i *index) less(value string) *index {
-	i.opr = "<"
-	i.val = value
-	return i
-}
-func (i *index) lessOrEqual(value string) *index {
-	i.opr = "<="
-	i.val = value
-	return i
-}
-
-// Seteds operator "=" for custom value and returns pointer to object where.
-func (i *index) equal(value string) *index {
-	i.opr = "="
-	i.val = value
-	return i
-}
-
-// Seteds operator "<>" for custom value and returns pointer to object where.
-func (i *index) notEqual(value string) *index {
-	i.opr = "<>"
-	i.val = value
-	return i
-}
-
-// Seteds operator ">" for custom value and returns pointer to object where.
-func (i *index) greater(value string) *index {
-	i.opr = ">"
-	i.val = value
-	return i
-}
-
-// Seteds operator ">=" for custom value and returns pointer to object where.
-func (i *index) greaterOrEqual(value string) *index {
-	i.opr = ">="
-	i.val = value
-	return i
-}
-
-// type header struct {
-// 	nam string // Name.
-// 	pgt string // Postgresql type.
-// 	pry bool   // Is as primary.
-// 	str *types
-// }
-
-// Returns postgresql type for this column.
-// type column struct {
-// 	*header
-// 	// *where
-// }
-
 type Type interface {
 	name() string  // Name for this column.
 	primary() bool //Is primary.
@@ -106,47 +36,7 @@ type types struct {
 	tbl *table  // Table.
 	ser *serial // Serial column.
 	cls []Type  // Columns.
-
-	// tbl *table // Table.
-	// cls []Type // Columns.
-	// nme []string     // Names of columns.
-	// idx map[Type]int // Indexes of columns.
-	// ci map[Type]string // Headers.
-
-	// hsh []*Index  // Indexes.
 }
-
-// func (t *types) primary() (string, bool) {
-
-// 	pry := make([]string, 0)
-
-// 	for i := 0; i < len(t.hdr); i++ {
-// 		if t.hdr[i].pry {
-// 			pry = append(pry, t.hdr[i].nam)
-// 		}
-// 	}
-
-// 	if len(pry) > 0 {
-// 		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pry, ", ")), true
-// 	}
-
-// 	return "", false
-// }
-
-// func (t *types) indexes() (string, bool) {
-
-// 	if len(t.hsh) < 1 {
-// 		return "", false
-// 	}
-
-// 	hsh := make([]string, len(t.hsh))
-
-// 	for i := 0; i < len(t.hsh); i++ {
-// 		hsh[i] = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.hsh[i].nam, t.tbl.name(), t.hsh[i].hdr.nam)
-// 	}
-
-// 	return strings.Join(hsh, " "), true
-// }
 
 type column struct {
 	tbl *table
@@ -154,16 +44,6 @@ type column struct {
 	pry bool   // Is primary.
 	idx bool   // Is indexed.
 }
-
-// func (c *column) write(v any) {
-// }
-// func (b *bigint) Update(value int64, filer *filter) {
-
-// 	nfg, bgg := filer.where(b.tbl)
-
-// 	fmt.Println("Up", nfg, bgg)
-// 	// b.tbl.write(b, value)
-// }
 
 func (c *column) update(value any, filer *filter) {
 
@@ -188,30 +68,9 @@ func (c *column) indexed() bool {
 	return c.idx
 }
 
-// type hash struct {
-// 	// nme string // Name of column.
-
-// 	// 	col column // Column.
-// 	// 	opr string // Operator.
-// 	// 	val string // Value.
-
-// 	// nam string // Name.
-// 	// hdr *header // Header
-// }
-
-// func (index) Index() {
-// }
-
 // The first argument is a name of new column, and the value returned is a pointer to a column type boolean newly associated with this table.
 func (t *types) Bool(name string) *boolean {
 	typ := &boolean{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
-	t.cls = append(t.cls, typ)
-	return typ
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type text newly associated with this table.
-func (t *types) String(name string) *text {
-	typ := &text{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
@@ -236,6 +95,13 @@ func (t *types) Serial(name string) *serial {
 // The first argument is a name of new column, and the value returned is a pointer to a column type numeric newly associated with this table.
 func (t *types) Float64(name string) *numeric {
 	typ := &numeric{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type text newly associated with this table.
+func (t *types) String(name string) *text {
+	typ := &text{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
@@ -277,50 +143,10 @@ func (t *types) primary() []string {
 	return p
 }
 
-// hsh[i] = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.hsh[i].nam, t.tbl.name(), t.hsh[i].hdr.nam)
-
-// // Headers
-// // formats according to a format specifier and returns the resulting string.
-// func (t *types) headers(format func(name, sql string) string) {
-
-// }
-
-// Set this column is as primary.
-// func (h *header) AsPrimary() {
-// 	h.pry = true
-// }
-// func (h *header) Index(name string) *Index {
-// 	hsh := &Index{nam: name, hdr: h}
-// 	h.str.hsh = append(h.str.hsh, hsh)
-// 	return hsh
-// }
-
-// Returns name for this column.
-// func (c column) name() string {
-// 	return c.nam
-// }
-
-// func (h header) nam() string {
-// 	return strings.ToLower(h.namm)
-// }
-
-// func (header) buf() any {
-// 	return new(bool)
-// }
-
-// // Returns postgresql type for this column.
-// func (header) tpe() string {
-// 	return "ffff"
-// }
-
-/*
-Type "Bool", corresponds to the type number in postgresql "BOOLEAN",
-this type implements the interface "column".
-*/
+// Type boolean, corresponds to the type in postgresql BOOLEAN and implements the interface a column.
 type boolean struct {
 	column
 }
-
 type indexBoolean struct {
 	idx *index
 }
@@ -341,16 +167,6 @@ func (b *boolean) NewIndex() *indexBoolean {
 	return &indexBoolean{idx: &index{nme: b.name()}}
 }
 
-// Returns postgresql type.
-func (boolean) sql() string {
-	return "BOOLEAN"
-}
-
-// Creates and returms pointer to buffer.
-// func (Bool) buf() any {
-// 	return new(bool)
-// }
-
 // Seteds operator "=" for custom value and returns pointer to object indexBoolean.
 func (i *indexBoolean) Equal(value bool) *index {
 	return i.idx.equal(fmt.Sprintf("%t", value))
@@ -361,113 +177,15 @@ func (i *indexBoolean) NotEqual(value bool) *index {
 	return i.idx.notEqual(fmt.Sprintf("%t", value))
 }
 
-// // Updates custom value.
-// func (w *whereBool) Value(v bool) {
-// 	w.val = fmt.Sprintf("%t", v)
-// }
-
-/*
-Type "String", corresponds to the type number in postgresql "TEXT",
-this type implements the interface "column".
-*/
-// type String text
-// type text header
-
-type text struct {
-	column
-}
-
-type indexText struct {
-	idx *index
-}
-
-// Write value to a row buffer.
-func (t *text) Write(value string) {
-	t.tbl.write(t, value)
-}
-
-// Updates the values ​​in a column.
-func (t *text) Update(value string, filer *filter) {
-	t.update(value, filer)
-}
-
-// Set as primary.
-func (t *text) AsPrimary() *text {
-	t.pry = true
-	return t
-}
-
-// Makes new object indexText and returns pointer to it.
-func (t *text) NewIndex() *indexText {
-	t.idx = true
-	return &indexText{idx: &index{nme: t.name()}}
-}
-
-// Returns name for this column.
-// func (t *text) name() string {
-// 	return t.nme
-// }
-
 // Returns postgresql type.
-func (text) sql() string {
-	return "TEXT"
+func (boolean) sql() string {
+	return "BOOLEAN"
 }
 
-// This type is serial.
-func (text) serial() bool {
-	return false
-}
-
-// Creates and returms pointer to buffer.
-// func (String) buf() any {
-// 	return new(string)
-// }
-
-// i.opr = "="
-// i.val = fmt.Sprintf("%t", value)
-// return i
-
-// Seteds operator "<" for custom value and returns pointer to object where.
-func (i *indexText) Less(value string) *index {
-	return i.idx.less(value)
-}
-
-// Seteds operator "<=" for custom value and returns pointer to object where.
-func (i *indexText) LessOrEqual(value string) *index {
-	return i.idx.lessOrEqual(value)
-}
-
-// Seteds operator "=" for custom value and returns pointer to object where.
-func (i *indexText) Equal(value string) *index {
-	return i.idx.equal(value)
-}
-
-// Seteds operator "<>" for custom value and returns pointer to object where.
-func (i *indexText) NotEqual(value string) *index {
-	return i.idx.notEqual(value)
-}
-
-// Seteds operator ">" for custom value and returns pointer to object where.
-func (i *indexText) Greater(value string) *index {
-	return i.idx.greater(value)
-}
-
-// Seteds operator ">=" for custom value and returns pointer to object where.
-func (i *indexText) GreaterOrEqual(value string) *index {
-	return i.idx.greaterOrEqual(value)
-}
-
-/*
-Type "Int64", corresponds to the type number in postgresql "BIGINT",
-this type implements the interface "column".
-*/
-// type Int64 bigint
-// type bigint header
-
+// Type bigint, corresponds to the type in postgresql TEXT and implements the interface a column.
 type bigint struct {
 	column
 }
-
 type indexBigint struct {
 	idx *index
 }
@@ -529,24 +247,9 @@ func (bigint) sql() string {
 	return "BIGINT"
 }
 
-// This type is serial.
-func (bigint) serial() bool {
-	return false
-}
-
-/*
-Type "Int64", corresponds to the type number in postgresql "BIGINT",
-this type implements the interface "column".
-*/
-// type Int64 bigint
-// type bigint header
-
+// Type serial, corresponds to the type in postgresql BIGSERIAL and implements the interface a column.
 type serial struct {
 	column
-}
-
-type indexSerial struct {
-	idx *index
 }
 
 // Makes new object indexBigint and returns pointer to it.
@@ -560,52 +263,10 @@ func (serial) sql() string {
 	return "BIGSERIAL"
 }
 
-// Creates and returms pointer to buffer.
-// func (Int64) buf() any {
-// 	return new(int64)
-// }
-
-// Seteds operator "<" for custom value and returns pointer to object where.
-func (i *indexSerial) Less(value int64) *index {
-	return i.idx.less(fmt.Sprintf("%d", value))
-}
-
-// Seteds operator "<=" for custom value and returns pointer to object where.
-func (i *indexSerial) LessOrEqual(value int64) *index {
-	return i.idx.lessOrEqual(fmt.Sprintf("%d", value))
-}
-
-// Seteds operator "=" for custom value and returns pointer to object where.
-func (i *indexSerial) Equal(value int64) *index {
-	return i.idx.equal(fmt.Sprintf("%d", value))
-}
-
-// Seteds operator "<>" for custom value and returns pointer to object where.
-func (i *indexSerial) NotEqual(value int64) *index {
-	return i.idx.notEqual(fmt.Sprintf("%d", value))
-}
-
-// Seteds operator ">" for custom value and returns pointer to object where.
-func (i *indexSerial) Greater(value int64) *index {
-	return i.idx.greater(fmt.Sprintf("%d", value))
-}
-
-// Seteds operator ">=" for custom value and returns pointer to object where.
-func (i *indexSerial) GreaterOrEqual(value int64) *index {
-	return i.idx.greaterOrEqual(fmt.Sprintf("%d", value))
-}
-
-/*
-Type "Float64", corresponds to the type number in postgresql "NUMERIC",
-this type implements the interface "column".
-*/
-// type Float64 numeric
-// type numeric header
-
+// Type numeric, corresponds to the type in postgresql NUMERIC and implements the interface a column.
 type numeric struct {
 	column
 }
-
 type indexNumeric struct {
 	idx *index
 }
@@ -632,32 +293,8 @@ func (n *numeric) NewIndex() *indexNumeric {
 	return &indexNumeric{idx: &index{nme: n.name()}}
 }
 
-// Returns name for this column.
-// func (n *numeric) name() string {
-// 	return n.nme
-// }
-
-// Returns postgresql type.
-func (numeric) sql() string {
-	return "NUMERIC"
-}
-
-// type whereFloat64 struct {
-// 	*where
-// }
-
-// Returns value from buffer.
-// func (f Float64) Row(reader *reader) float64 {
-
-// 	idx, ise := reader.tbl.idx[f]
-// 	if !ise {
-// 		xlog.Fatallf("The column \"%s\" is not associated with the reader.", f.nam())
-// 	}
-// 	return *reader.buf[idx].(*float64)
-// }
-
 // Seteds operator "<" for custom value and returns pointer to object where.
-func (i *indexNumeric) Less(value string) *index {
+func (i *indexNumeric) Less(value float64) *index {
 	return i.idx.less(fmt.Sprintf("%f", value))
 }
 
@@ -686,17 +323,80 @@ func (i *indexNumeric) GreaterOrEqual(value float64) *index {
 	return i.idx.greaterOrEqual(fmt.Sprintf("%f", value))
 }
 
-/*
-Type "Time", corresponds to the type number in postgresql "TIMESTAMP WITHOUT TIME ZONE",
-this type implements the interface "column".
-*/
-// type Time timestamp
-// type timestamp header
+// Returns postgresql type.
+func (numeric) sql() string {
+	return "NUMERIC"
+}
 
+// Type text, corresponds to the type in postgresql TEXT and implements the interface a column.
+type text struct {
+	column
+}
+type indexText struct {
+	idx *index
+}
+
+// Write value to a row buffer.
+func (t *text) Write(value string) {
+	t.tbl.write(t, value)
+}
+
+// Updates the values ​​in a column.
+func (t *text) Update(value string, filer *filter) {
+	t.update(value, filer)
+}
+
+// Set as primary.
+func (t *text) AsPrimary() *text {
+	t.pry = true
+	return t
+}
+
+// Makes new object indexText and returns pointer to it.
+func (t *text) NewIndex() *indexText {
+	t.idx = true
+	return &indexText{idx: &index{nme: t.name()}}
+}
+
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexText) Less(value string) *index {
+	return i.idx.less(value)
+}
+
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (i *indexText) LessOrEqual(value string) *index {
+	return i.idx.lessOrEqual(value)
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (i *indexText) Equal(value string) *index {
+	return i.idx.equal(value)
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (i *indexText) NotEqual(value string) *index {
+	return i.idx.notEqual(value)
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (i *indexText) Greater(value string) *index {
+	return i.idx.greater(value)
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (i *indexText) GreaterOrEqual(value string) *index {
+	return i.idx.greaterOrEqual(value)
+}
+
+// Returns postgresql type.
+func (text) sql() string {
+	return "TEXT"
+}
+
+// Type timestamp, corresponds to the type in postgresql TIMESTAMP WITHOUT TIME ZONE and implements the interface a column.
 type timestamp struct {
 	column
 }
-
 type indexTimestamp struct {
 	idx *index
 }
@@ -722,21 +422,6 @@ func (t *timestamp) NewIndex() *indexTimestamp {
 	t.idx = true
 	return &indexTimestamp{idx: &index{nme: t.name()}}
 }
-
-// Returns name for this column.
-// func (t *timestamp) name() string {
-// 	return t.nme
-// }
-
-// Returns postgresql type.
-func (timestamp) sql() string {
-	return "TIMESTAMP WITHOUT TIME ZONE"
-}
-
-// Create and returms pointer to buffer.
-// func (Time) buf() any {
-// 	return new(time.Time)
-// }
 
 // Seteds operator "<" for custom value and returns pointer to object where.
 func (i *indexTimestamp) Less(value time.Time) *index {
@@ -772,4 +457,9 @@ func (i *indexTimestamp) Greater(value time.Time) *index {
 func (i *indexTimestamp) GreaterOrEqual(value time.Time) *index {
 	value = value.UTC()
 	return i.idx.greaterOrEqual(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
+}
+
+// Returns postgresql type.
+func (timestamp) sql() string {
+	return "TIMESTAMP WITHOUT TIME ZONE"
 }
