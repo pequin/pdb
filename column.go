@@ -38,6 +38,49 @@ type index struct {
 	val string // Value.
 }
 
+func (i *index) NewFilter() *filter {
+	return &filter{idx: i}
+}
+
+func (i *index) less(value string) *index {
+	i.opr = "<"
+	i.val = value
+	return i
+}
+func (i *index) lessOrEqual(value string) *index {
+	i.opr = "<="
+	i.val = value
+	return i
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (i *index) equal(value string) *index {
+	i.opr = "="
+	i.val = value
+	return i
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (i *index) notEqual(value string) *index {
+	i.opr = "<>"
+	i.val = value
+	return i
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (i *index) greater(value string) *index {
+	i.opr = ">"
+	i.val = value
+	return i
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (i *index) greaterOrEqual(value string) *index {
+	i.opr = ">="
+	i.val = value
+	return i
+}
+
 // type header struct {
 // 	nam string // Name.
 // 	pgt string // Postgresql type.
@@ -114,6 +157,21 @@ type column struct {
 
 // func (c *column) write(v any) {
 // }
+// func (b *bigint) Update(value int64, filer *filter) {
+
+// 	nfg, bgg := filer.where(b.tbl)
+
+// 	fmt.Println("Up", nfg, bgg)
+// 	// b.tbl.write(b, value)
+// }
+
+func (c *column) update(value any, filer *filter) {
+
+	if value != nil {
+		_, err := c.tbl.stx.Exec(fmt.Sprintf("UPDATE %s SET %s = $1%s;", c.tbl.name(), c.nme, filer.where(c.tbl)), value)
+		xlog.Fatalln(err)
+	}
+}
 
 // Returns name for this column.
 func (c *column) name() string {
@@ -272,10 +330,15 @@ func (b *boolean) Write(value bool) {
 	b.tbl.write(b, value)
 }
 
+// Updates the values ​​in a column.
+func (b *boolean) Update(value bool, filer *filter) {
+	b.update(value, filer)
+}
+
 // Makes new object indexBoolean and returns pointer to it.
 func (b *boolean) NewIndex() *indexBoolean {
 	b.idx = true
-	return &indexBoolean{idx: &index{nme: b.nme}}
+	return &indexBoolean{idx: &index{nme: b.name()}}
 }
 
 // Returns postgresql type.
@@ -290,16 +353,12 @@ func (boolean) sql() string {
 
 // Seteds operator "=" for custom value and returns pointer to object indexBoolean.
 func (i *indexBoolean) Equal(value bool) *index {
-	i.idx.opr = "="
-	i.idx.val = fmt.Sprintf("%t", value)
-	return i.idx
+	return i.idx.equal(fmt.Sprintf("%t", value))
 }
 
 // Seteds operator "<>" for custom value and returns pointer to object indexBoolean.
 func (i *indexBoolean) NotEqual(value bool) *index {
-	i.idx.opr = "<>"
-	i.idx.val = fmt.Sprintf("%t", value)
-	return i.idx
+	return i.idx.notEqual(fmt.Sprintf("%t", value))
 }
 
 // // Updates custom value.
@@ -327,6 +386,11 @@ func (t *text) Write(value string) {
 	t.tbl.write(t, value)
 }
 
+// Updates the values ​​in a column.
+func (t *text) Update(value string, filer *filter) {
+	t.update(value, filer)
+}
+
 // Set as primary.
 func (t *text) AsPrimary() *text {
 	t.pry = true
@@ -336,7 +400,7 @@ func (t *text) AsPrimary() *text {
 // Makes new object indexText and returns pointer to it.
 func (t *text) NewIndex() *indexText {
 	t.idx = true
-	return &indexText{idx: &index{nme: t.nme}}
+	return &indexText{idx: &index{nme: t.name()}}
 }
 
 // Returns name for this column.
@@ -363,39 +427,34 @@ func (text) serial() bool {
 // i.val = fmt.Sprintf("%t", value)
 // return i
 
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexText) Less(value string) *index {
+	return i.idx.less(value)
+}
+
 // Seteds operator "<=" for custom value and returns pointer to object where.
 func (i *indexText) LessOrEqual(value string) *index {
-	i.idx.opr = "<="
-	i.idx.opr = value
-	return i.idx
+	return i.idx.lessOrEqual(value)
 }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
 func (i *indexText) Equal(value string) *index {
-	i.idx.opr = "="
-	i.idx.opr = value
-	return i.idx
+	return i.idx.equal(value)
 }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
 func (i *indexText) NotEqual(value string) *index {
-	i.idx.opr = "<>"
-	i.idx.opr = value
-	return i.idx
+	return i.idx.notEqual(value)
 }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
 func (i *indexText) Greater(value string) *index {
-	i.idx.opr = ">"
-	i.idx.opr = value
-	return i.idx
+	return i.idx.greater(value)
 }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
 func (i *indexText) GreaterOrEqual(value string) *index {
-	i.idx.opr = ">="
-	i.idx.opr = value
-	return i.idx
+	return i.idx.greaterOrEqual(value)
 }
 
 /*
@@ -417,8 +476,10 @@ type indexBigint struct {
 func (b *bigint) Write(value int64) {
 	b.tbl.write(b, value)
 }
-func (b *bigint) Update(value int64, filer string) {
-	// b.tbl.write(b, value)
+
+// Updates the values ​​in a column.
+func (b *bigint) Update(value int64, filer *filter) {
+	b.update(value, filer)
 }
 
 // Set as primary.
@@ -430,15 +491,38 @@ func (b *bigint) AsPrimary() *bigint {
 // Makes new object indexBigint and returns pointer to it.
 func (b *bigint) NewIndex() *indexBigint {
 	b.idx = true
-	return &indexBigint{idx: &index{nme: b.nme}}
+	return &indexBigint{idx: &index{nme: b.name()}}
 }
 
-// primary
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexBigint) Less(value int64) *index {
+	return i.idx.less(fmt.Sprintf("%d", value))
+}
 
-// Returns name for this column.
-// func (b *bigint) name() string {
-// 	return b.nme
-// }
+// Seteds operator "<=" for custom value and returns pointer to object where.
+func (i *indexBigint) LessOrEqual(value int64) *index {
+	return i.idx.lessOrEqual(fmt.Sprintf("%d", value))
+}
+
+// Seteds operator "=" for custom value and returns pointer to object where.
+func (i *indexBigint) Equal(value int64) *index {
+	return i.idx.equal(fmt.Sprintf("%d", value))
+}
+
+// Seteds operator "<>" for custom value and returns pointer to object where.
+func (i *indexBigint) NotEqual(value int64) *index {
+	return i.idx.notEqual(fmt.Sprintf("%d", value))
+}
+
+// Seteds operator ">" for custom value and returns pointer to object where.
+func (i *indexBigint) Greater(value int64) *index {
+	return i.idx.greater(fmt.Sprintf("%d", value))
+}
+
+// Seteds operator ">=" for custom value and returns pointer to object where.
+func (i *indexBigint) GreaterOrEqual(value int64) *index {
+	return i.idx.greaterOrEqual(fmt.Sprintf("%d", value))
+}
 
 // Returns postgresql type.
 func (bigint) sql() string {
@@ -465,12 +549,11 @@ type indexSerial struct {
 	idx *index
 }
 
-// primary
-
-// Returns name for this column.
-// func (b *bigint) name() string {
-// 	return b.nme
-// }
+// Makes new object indexBigint and returns pointer to it.
+func (b *serial) NewIndex() *indexBigint {
+	b.idx = true
+	return &indexBigint{idx: &index{nme: b.name()}}
+}
 
 // Returns postgresql type.
 func (serial) sql() string {
@@ -482,39 +565,34 @@ func (serial) sql() string {
 // 	return new(int64)
 // }
 
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexSerial) Less(value int64) *index {
+	return i.idx.less(fmt.Sprintf("%d", value))
+}
+
 // Seteds operator "<=" for custom value and returns pointer to object where.
 func (i *indexSerial) LessOrEqual(value int64) *index {
-	i.idx.opr = "<="
-	i.idx.opr = fmt.Sprintf("%d", value)
-	return i.idx
+	return i.idx.lessOrEqual(fmt.Sprintf("%d", value))
 }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
 func (i *indexSerial) Equal(value int64) *index {
-	i.idx.opr = "="
-	i.idx.opr = fmt.Sprintf("%d", value)
-	return i.idx
+	return i.idx.equal(fmt.Sprintf("%d", value))
 }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
 func (i *indexSerial) NotEqual(value int64) *index {
-	i.idx.opr = "<>"
-	i.idx.opr = fmt.Sprintf("%d", value)
-	return i.idx
+	return i.idx.notEqual(fmt.Sprintf("%d", value))
 }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
 func (i *indexSerial) Greater(value int64) *index {
-	i.idx.opr = ">"
-	i.idx.opr = fmt.Sprintf("%d", value)
-	return i.idx
+	return i.idx.greater(fmt.Sprintf("%d", value))
 }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
 func (i *indexSerial) GreaterOrEqual(value int64) *index {
-	i.idx.opr = ">="
-	i.idx.opr = fmt.Sprintf("%d", value)
-	return i.idx
+	return i.idx.greaterOrEqual(fmt.Sprintf("%d", value))
 }
 
 /*
@@ -537,6 +615,11 @@ func (n *numeric) Write(value float64) {
 	n.tbl.write(n, value)
 }
 
+// Updates the values ​​in a column.
+func (n *numeric) Update(value float64, filer *filter) {
+	n.update(value, filer)
+}
+
 // Set as primary.
 func (n *numeric) AsPrimary() *numeric {
 	n.pry = true
@@ -546,7 +629,7 @@ func (n *numeric) AsPrimary() *numeric {
 // Makes new object indexNumeric and returns pointer to it.
 func (n *numeric) NewIndex() *indexNumeric {
 	n.idx = true
-	return &indexNumeric{idx: &index{nme: n.nme}}
+	return &indexNumeric{idx: &index{nme: n.name()}}
 }
 
 // Returns name for this column.
@@ -573,39 +656,34 @@ func (numeric) sql() string {
 // 	return *reader.buf[idx].(*float64)
 // }
 
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexNumeric) Less(value string) *index {
+	return i.idx.less(fmt.Sprintf("%f", value))
+}
+
 // Seteds operator "<=" for custom value and returns pointer to object where.
 func (i *indexNumeric) LessOrEqual(value float64) *index {
-	i.idx.opr = "<="
-	i.idx.opr = fmt.Sprintf("%f", value)
-	return i.idx
+	return i.idx.lessOrEqual(fmt.Sprintf("%f", value))
 }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
 func (i *indexNumeric) Equal(value float64) *index {
-	i.idx.opr = "="
-	i.idx.opr = fmt.Sprintf("%f", value)
-	return i.idx
+	return i.idx.equal(fmt.Sprintf("%f", value))
 }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
 func (i *indexNumeric) NotEqual(value float64) *index {
-	i.idx.opr = "<>"
-	i.idx.opr = fmt.Sprintf("%f", value)
-	return i.idx
+	return i.idx.notEqual(fmt.Sprintf("%f", value))
 }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
 func (i *indexNumeric) Greater(value float64) *index {
-	i.idx.opr = ">"
-	i.idx.opr = fmt.Sprintf("%f", value)
-	return i.idx
+	return i.idx.greater(fmt.Sprintf("%f", value))
 }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
 func (i *indexNumeric) GreaterOrEqual(value float64) *index {
-	i.idx.opr = ">="
-	i.idx.opr = fmt.Sprintf("%f", value)
-	return i.idx
+	return i.idx.greaterOrEqual(fmt.Sprintf("%f", value))
 }
 
 /*
@@ -625,7 +703,12 @@ type indexTimestamp struct {
 
 // Write value to a row buffer.
 func (t *timestamp) Write(value time.Time) {
-	t.tbl.write(t, value)
+	t.tbl.write(t, value.UTC())
+}
+
+// Updates the values ​​in a column.
+func (t *timestamp) Update(value time.Time, filer *filter) {
+	t.update(value.UTC(), filer)
 }
 
 // Set as primary.
@@ -637,7 +720,7 @@ func (t *timestamp) AsPrimary() *timestamp {
 // Makes new object indexTimestamp and returns pointer to it.
 func (t *timestamp) NewIndex() *indexTimestamp {
 	t.idx = true
-	return &indexTimestamp{idx: &index{nme: t.nme}}
+	return &indexTimestamp{idx: &index{nme: t.name()}}
 }
 
 // Returns name for this column.
@@ -655,42 +738,38 @@ func (timestamp) sql() string {
 // 	return new(time.Time)
 // }
 
+// Seteds operator "<" for custom value and returns pointer to object where.
+func (i *indexTimestamp) Less(value time.Time) *index {
+	value = value.UTC()
+	return i.idx.less(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
+}
+
 // Seteds operator "<=" for custom value and returns pointer to object where.
 func (i *indexTimestamp) LessOrEqual(value time.Time) *index {
 	value = value.UTC()
-	i.idx.opr = "<="
-	i.idx.opr = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return i.idx
+	return i.idx.lessOrEqual(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
 }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
 func (i *indexTimestamp) Equal(value time.Time) *index {
 	value = value.UTC()
-	i.idx.opr = "="
-	i.idx.opr = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return i.idx
+	return i.idx.equal(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
 }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
 func (i *indexTimestamp) NotEqual(value time.Time) *index {
 	value = value.UTC()
-	i.idx.opr = "<>"
-	i.idx.opr = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return i.idx
+	return i.idx.notEqual(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
 }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
 func (i *indexTimestamp) Greater(value time.Time) *index {
 	value = value.UTC()
-	i.idx.opr = ">"
-	i.idx.opr = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return i.idx
+	return i.idx.greater(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
 }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
 func (i *indexTimestamp) GreaterOrEqual(value time.Time) *index {
 	value = value.UTC()
-	i.idx.opr = ">="
-	i.idx.opr = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return i.idx
+	return i.idx.greaterOrEqual(fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond()))
 }

@@ -1,5 +1,10 @@
 package pdb
 
+import (
+	"fmt"
+	"strings"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,49 +21,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// type filter struct {
-// 	whr *where   // Main expression.
-// 	nxt []*where // Subsequent expressions.
-// 	log []bool   // Logic for join the next expression - true is as AND, false is as OR.
-// }
+type filter struct {
+	idx *index   // Main expression.
+	nxt []*index // Subsequent expressions.
+	log []bool   // Logic for join the next expression - true is as AND, false is as OR.
+}
 
-// type where struct {
-// 	col column // Column.
-// 	opr string // Operator.
-// 	val string // Value.
-// }
+func (f *filter) And(index *index) *filter {
+	f.nxt = append(f.nxt, index)
+	f.log = append(f.log, true)
+	return f
+}
+func (f *filter) Or(index *index) *filter {
+	f.nxt = append(f.nxt, index)
+	f.log = append(f.log, false)
+	return f
+}
 
-// func (f *filter) And(where *where) *filter {
-// 	f.nxt = append(f.nxt, where)
-// 	f.log = append(f.log, true)
-// 	return f
-// }
-// func (f *filter) Or(where *where) *filter {
-// 	f.nxt = append(f.nxt, where)
-// 	f.log = append(f.log, false)
-// 	return f
-// }
+func (f *filter) where(table *table) string {
 
-// func (f *filter) string(table *table) string {
+	if f == nil {
+		return ""
+	}
 
-// 	// if f == nil {
-// 	// 	return ""
-// 	// }
+	str := []string{fmt.Sprintf("%s.%s %s '%s'", table.name(), f.idx.nme, f.idx.opr, f.idx.val)}
 
-// 	// str := []string{fmt.Sprintf("%s.%s %s '%s'", table.name(), f.whr.col.nam(), f.whr.opr, f.whr.val)}
+	log := ""
+	for i := 0; i < len(f.nxt); i++ {
 
-// 	// log := ""
-// 	// for i := 0; i < len(f.nxt); i++ {
+		if f.log[i] {
+			log = "AND"
+		} else {
+			log = "OR"
+		}
+		str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].nme, f.nxt[i].opr, f.nxt[i].val))
+	}
 
-// 	// 	if f.log[i] {
-// 	// 		log = "AND"
-// 	// 	} else {
-// 	// 		log = "OR"
-// 	// 	}
-// 	// 	str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].col.nam(), f.nxt[i].opr, f.nxt[i].val))
-// 	// }
-
-// 	// return "WHERE " + strings.Join(str, " ")
-
-// 	return ""
-// }
+	return " WHERE " + strings.Join(str, " ")
+}
