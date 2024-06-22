@@ -1,11 +1,5 @@
 package pdb
 
-import (
-	"strings"
-
-	"github.com/pequin/xlog"
-)
-
 // /*
 // Copyright 2024 Vasiliy Vdovin
 
@@ -23,12 +17,12 @@ import (
 // */
 
 type reader struct {
-	tbl *table  // Table.
-	flt *filter // Filter.
-	srt *sort   // Specifies the sort order.
-	off offset  // Skip that many rows before beginning to return rows.
-	lim limit   // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
-	buf []any   // Buffer.
+	tbl *table // Table.
+	// flt *filter // Filter.
+	// srt *sort   // Specifies the sort order.
+	// off offset  // Skip that many rows before beginning to return rows.
+	// lim limit   // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
+	// buf []any   // Buffer.
 }
 
 // Makes new reader and returns pointer to it.
@@ -43,63 +37,63 @@ func (t *table) Reader() *reader {
 	return nil
 }
 
-func (r *reader) Filter(where *where) *filter {
+// func (r *reader) Filter(where *where) *filter {
 
-	r.flt = &filter{whr: where}
+// 	r.flt = &filter{whr: where}
 
-	return r.flt
-}
+// 	return r.flt
+// }
 
-func (r *reader) Sort() *sort {
-	if r.srt == nil {
-		r.srt = &sort{ord: make([]order, 0)}
-	}
-	return r.srt
-}
+// func (r *reader) Sort() *sort {
+// 	if r.srt == nil {
+// 		r.srt = &sort{ord: make([]order, 0)}
+// 	}
+// 	return r.srt
+// }
 
-func (r *reader) Limit(value uint64) {
-	r.lim = limit(value)
-}
+// func (r *reader) Limit(value uint64) {
+// 	r.lim = limit(value)
+// }
 
-func (r *reader) Offset(value uint64) {
-	r.off = offset(value)
-}
+// func (r *reader) Offset(value uint64) {
+// 	r.off = offset(value)
+// }
 
-func (r *reader) from() string {
+// func (r *reader) from() string {
 
-	// str := make([]string, len(r.tbl.col))
+// 	// str := make([]string, len(r.tbl.col))
 
-	// for i := 0; i < len(r.tbl.col); i++ {
-	// 	str[i] = fmt.Sprintf("%s.%s", r.tbl.name(), r.tbl.col[i].nam())
-	// }
+// 	// for i := 0; i < len(r.tbl.col); i++ {
+// 	// 	str[i] = fmt.Sprintf("%s.%s", r.tbl.name(), r.tbl.col[i].nam())
+// 	// }
 
-	// return "SELECT " + strings.Join(str, ", ") + " FROM " + r.tbl.name()
+// 	// return "SELECT " + strings.Join(str, ", ") + " FROM " + r.tbl.name()
 
-	return ""
-}
+// 	return ""
+// }
 
-func (r *reader) string() string {
+// func (r *reader) string() string {
 
-	frm := r.from()
-	flt := r.flt.string(r.tbl)
-	srt := r.srt.string(r.tbl)
-	lim := r.lim.string()
-	off := r.off.string()
+// 	frm := r.from()
+// 	flt := r.flt.string(r.tbl)
+// 	srt := r.srt.string(r.tbl)
+// 	lim := r.lim.string()
+// 	off := r.off.string()
 
-	return strings.Join([]string{frm, flt, srt, lim, off}, " ") + ";"
-}
+// 	return strings.Join([]string{frm, flt, srt, lim, off}, " ") + ";"
+// }
 
-func (r *reader) Read(row func()) {
+// func (r *reader) Read(row func()) {
 
-	if row != nil && r.tbl.stx != nil {
+// 	if row != nil && r.tbl.stx != nil {
 
-		rws, err := r.tbl.stx.Query(r.string())
-		xlog.Fatalln(err)
-		defer rws.Close()
+// 		rws, err := r.tbl.stx.Query(r.string())
+// 		xlog.Fatalln(err)
+// 		defer rws.Close()
 
-		for rws.Next() {
-			xlog.Fatalln(rws.Scan(r.buf...))
-			row()
-		}
-	}
-}
+// 		for rws.Next() {
+// 			xlog.Fatalln(rws.Scan(r.buf...))
+// 			row()
+// 		}
+// 	}
+// }

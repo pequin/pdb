@@ -26,11 +26,18 @@ limitations under the License.
 */
 
 type table struct {
-	nme    string  // Name.
-	sdb    *schema // Schema of database.
-	stx    *sql.Tx // Transaction
-	Column structure
-	isi    bool // This table is init
+	Type types
+	nme  string  // Name.
+	sdb  *schema // Schema of database.
+	stx  *sql.Tx // Transaction
+	isi  bool    // This table is init
+
+	// Writer.
+	wrt struct {
+		qry string //Query
+		row []any
+	}
+
 	// idx map[column]int    // Column indexes.
 	// cpk []column          // Columns of primary keys.
 	// hsh []*Index // Hash columns.
@@ -39,7 +46,7 @@ type table struct {
 
 func (s *schema) Table(name string) *table {
 	t := &table{nme: strings.ToLower(name), sdb: s, isi: false}
-	t.Column.tbl = t
+	t.Type.tbl = t
 	t.begin()
 	return t
 }
@@ -63,37 +70,82 @@ func (t *table) name() string {
 
 func (t *table) init() {
 
-	if t.isi {
-		hap := make([]string, len(t.Column.hdr)) // Headers and primary keys.
+	if !t.isi {
 
-		for i := 0; i < len(t.Column.hdr); i++ {
-			hap[i] = fmt.Sprintf("%s %s NOT NULL", t.Column.hdr[i].nam, t.Column.hdr[i].pgt)
+		cl := len(t.Type.cls)
+
+		hdr := make([]string, cl) // Headers.
+		iio := make([]string, cl) // Variables for insertinto.
+
+		hap := make([]string, 0) // Headers and primary keys.
+
+		if t.Type.ser != nil {
+			hap = append(hap, fmt.Sprintf("%s %s", t.Type.ser.name(), t.Type.ser.sql()))
 		}
 
-		if s, b := t.Column.primary(); b {
-			hap = append(hap, s)
+		for i := 0; i < cl; i++ {
+			hdr[i] = t.Type.cls[i].name()
+			iio[i] = fmt.Sprintf("$%d", i+1)
+			hap = append(hap, fmt.Sprintf("%s %s NOT NULL", hdr[i], t.Type.cls[i].sql()))
+		}
+
+		if p := t.Type.primary(); len(p) > 0 {
+			hap = append(hap, fmt.Sprintf("PRIMARY KEY(%s)", strings.Join(p, ", ")))
 		}
 
 		qry := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s; CREATE TABLE IF NOT EXISTS %s (%s);", t.sdb.nme, t.name(), strings.Join(hap, ", "))
+
 		_, err := t.stx.Exec(qry)
 		xlog.Fatalln(err)
 
-		if q, b := t.Column.indexes(); b {
-			_, err := t.stx.Exec(q)
-			xlog.Fatalln(err)
-		}
+		t.Type.createIndexes()
+
+		// Writer.
+		t.wrt.qry = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", t.name(), strings.Join(hdr, ", "), strings.Join(iio, ", "))
+		t.wrt.row = make([]any, cl)
+
+		t.isi = true
 	}
 
 }
 
 // Begin starts a transaction and rolls back the previous transaction.
 func (t *table) begin() {
-	//
-	// if t.stx != nil {
-	// 	t.stx.Rollback()
-	// }
-
+	if t.stx != nil {
+		t.stx.Rollback()
+	}
 	stx, err := t.sdb.con.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
 	xlog.Fatalln(err)
 	t.stx = stx
+}
+
+func (t *table) write(to Type, value any) {
+
+	t.init()
+
+	nfc := 0 // Number of filled columns.
+
+	for i := 0; i < len(t.Type.cls); i++ {
+
+		if t.Type.cls[i] == to && t.wrt.row[i] == nil {
+			t.wrt.row[i] = value
+		}
+
+		if t.wrt.row[i] != nil {
+			nfc++
+		}
+	}
+
+	if nfc == len(t.Type.cls) {
+		t.writer()
+	}
+}
+
+func (t *table) writer() {
+	_, err := t.stx.Exec(t.wrt.qry, t.wrt.row...)
+	xlog.Fatalln(err)
+
+	for i := 0; i < len(t.wrt.row); i++ {
+		t.wrt.row[i] = nil
+	}
 }

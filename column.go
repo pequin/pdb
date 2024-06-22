@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/pequin/xlog"
 )
 
 /*
@@ -28,113 +30,217 @@ limitations under the License.
 // 	tpe() string // Returns postgresql type for this column.
 // }
 
-type Index hash
+// type Index hash
 
-type hash struct {
-	nam string  // Name.
-	hdr *header // Header
-}
+// type where struct {
+// 	nme string // Name of column.
+// 	opr string // Operator.
+// 	val string // Value.
+// }
 
 type into struct {
-	hdr *header // Header.
-	val any     // Value.
+	// hdr *header // Header.
+	val any // Value.
 }
 
-type header struct {
-	nam string // Name.
-	pgt string // Postgresql type.
-	pry bool   // Is as primary.
-	str *structure
-}
+// type header struct {
+// 	nam string // Name.
+// 	pgt string // Postgresql type.
+// 	pry bool   // Is as primary.
+// 	str *types
+// }
 
 // Returns postgresql type for this column.
+// type column struct {
+// 	*header
+// 	// *where
+// }
+
+type Type interface {
+	name() string  // Name for this column.
+	primary() bool //Is primary.
+	indexed() bool // Is indexed.
+	sql() string   // Postgresql type.
+
+}
+
+type types struct {
+	tbl *table  // Table.
+	ser *serial // Serial column.
+	cls []Type  // Columns.
+
+	// tbl *table // Table.
+	// cls []Type // Columns.
+	// nme []string     // Names of columns.
+	// idx map[Type]int // Indexes of columns.
+	// ci map[Type]string // Headers.
+
+	// hsh []*Index  // Indexes.
+}
+
+// func (t *types) primary() (string, bool) {
+
+// 	pry := make([]string, 0)
+
+// 	for i := 0; i < len(t.hdr); i++ {
+// 		if t.hdr[i].pry {
+// 			pry = append(pry, t.hdr[i].nam)
+// 		}
+// 	}
+
+// 	if len(pry) > 0 {
+// 		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pry, ", ")), true
+// 	}
+
+// 	return "", false
+// }
+
+// func (t *types) indexes() (string, bool) {
+
+// 	if len(t.hsh) < 1 {
+// 		return "", false
+// 	}
+
+// 	hsh := make([]string, len(t.hsh))
+
+// 	for i := 0; i < len(t.hsh); i++ {
+// 		hsh[i] = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.hsh[i].nam, t.tbl.name(), t.hsh[i].hdr.nam)
+// 	}
+
+// 	return strings.Join(hsh, " "), true
+// }
+
 type column struct {
-	*header
-	// *where
+	tbl *table
+	nme string // Name.
+	pry bool   // Is primary.
+	idx bool   // Is indexed.
 }
 
-type structure struct {
-	tbl *table    // Table.
-	hdr []*header // Headers.
-	hsh []*Index  // Indexes.
+// func (c *column) write(v any) {
+// }
+
+// Returns name for this column.
+func (c *column) name() string {
+	return c.nme
 }
 
-func (t *structure) primary() (string, bool) {
+// Is primary.
+func (c *column) primary() bool {
+	return c.pry
+}
 
-	pry := make([]string, 0)
+// Is indexed.
+func (c *column) indexed() bool {
+	return c.idx
+}
 
-	for i := 0; i < len(t.hdr); i++ {
-		if t.hdr[i].pry {
-			pry = append(pry, t.hdr[i].nam)
+// type hash struct {
+// 	// nme string // Name of column.
+
+// 	// 	col column // Column.
+// 	// 	opr string // Operator.
+// 	// 	val string // Value.
+
+// 	// nam string // Name.
+// 	// hdr *header // Header
+// }
+
+// func (index) Index() {
+// }
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type boolean newly associated with this table.
+func (t *types) Bool(name string) *boolean {
+	typ := &boolean{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type text newly associated with this table.
+func (t *types) String(name string) *text {
+	typ := &text{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type bigint newly associated with this table.
+func (t *types) Int64(name string) *bigint {
+	typ := &bigint{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type serial newly associated with this table.
+func (t *types) Serial(name string) *serial {
+	if t.ser == nil {
+		t.ser = &serial{column{tbl: t.tbl, nme: name, pry: true, idx: false}}
+	} else {
+		xlog.Fatallf("A column of type series \"%s\" is already associated with the table: %s", t.ser.nme, t.tbl.nme)
+	}
+	return t.ser
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type numeric newly associated with this table.
+func (t *types) Float64(name string) *numeric {
+	typ := &numeric{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// The first argument is a name of new column, and the value returned is a pointer to a column type timestamp newly associated with this table.
+func (t *types) Time(name string) *timestamp {
+	typ := &timestamp{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	t.cls = append(t.cls, typ)
+	return typ
+}
+
+// Create indexes.
+func (t *types) createIndexes() {
+
+	qry := make([]string, 0)
+
+	for i := 0; i < len(t.cls); i++ {
+
+		if t.cls[i].indexed() {
+			qry = append(qry, fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.cls[i].name(), t.tbl.name(), t.cls[i].name()))
 		}
 	}
 
-	if len(pry) > 0 {
-		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pry, ", ")), true
+	_, err := t.tbl.stx.Exec(strings.Join(qry, " "))
+	xlog.Fatalln(err)
+}
+
+func (t *types) primary() []string {
+	p := make([]string, 0)
+
+	for i := 0; i < len(t.cls); i++ {
+
+		if t.cls[i].primary() {
+			p = append(p, t.cls[i].name())
+		}
+
 	}
 
-	return "", false
+	return p
 }
 
-func (t *structure) indexes() (string, bool) {
+// hsh[i] = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.hsh[i].nam, t.tbl.name(), t.hsh[i].hdr.nam)
 
-	if len(t.hsh) < 1 {
-		return "", false
-	}
+// // Headers
+// // formats according to a format specifier and returns the resulting string.
+// func (t *types) headers(format func(name, sql string) string) {
 
-	hsh := make([]string, len(t.hsh))
-
-	for i := 0; i < len(t.hsh); i++ {
-		hsh[i] = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s USING HASH (%s);", t.hsh[i].nam, t.tbl.name(), t.hsh[i].hdr.nam)
-	}
-
-	return strings.Join(hsh, " "), true
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type Bool newly associated with this table.
-func (t *structure) Bool(name string) *Bool {
-	tpe := &Bool{header: &header{nam: name, pgt: "BOOLEAN", str: t}}
-	t.hdr = append(t.hdr, tpe.header)
-	return tpe
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type String newly associated with this table.
-func (t *structure) String(name string) *String {
-	tpe := &String{header: &header{nam: name, pgt: "TEXT", str: t}}
-	t.hdr = append(t.hdr, tpe.header)
-	return tpe
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type Int64 newly associated with this table.
-func (t *structure) Int64(name string) *Int64 {
-	tpe := &Int64{header: &header{nam: name, pgt: "BIGINT", str: t}}
-	t.hdr = append(t.hdr, tpe.header)
-	return tpe
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type Float64 newly associated with this table.
-func (t *structure) Float64(name string) *Float64 {
-	tpe := &Float64{header: &header{nam: name, pgt: "NUMERIC", str: t}}
-	t.hdr = append(t.hdr, tpe.header)
-	return tpe
-}
-
-// The first argument is a name of new column, and the value returned is a pointer to a column type Time newly associated with this table.
-func (t *structure) Time(name string) *Time {
-	tpe := &Time{header: &header{nam: name, pgt: "TIMESTAMP WITHOUT TIME ZONE", str: t}}
-	t.hdr = append(t.hdr, tpe.header)
-	return tpe
-}
+// }
 
 // Set this column is as primary.
-func (h *header) AsPrimary() {
-	h.pry = true
-}
-func (h *header) Index(name string) *Index {
-	hsh := &Index{nam: name, hdr: h}
-	h.str.hsh = append(h.str.hsh, hsh)
-	return hsh
-}
+// func (h *header) AsPrimary() {
+// 	h.pry = true
+// }
+// func (h *header) Index(name string) *Index {
+// 	hsh := &Index{nam: name, hdr: h}
+// 	h.str.hsh = append(h.str.hsh, hsh)
+// 	return hsh
+// }
 
 // Returns name for this column.
 // func (c column) name() string {
@@ -158,13 +264,43 @@ func (h *header) Index(name string) *Index {
 Type "Bool", corresponds to the type number in postgresql "BOOLEAN",
 this type implements the interface "column".
 */
+type boolean struct {
+	column
+}
 
-type Bool column
+type indexBoolean struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// Write value to a row buffer.
+func (b *boolean) Write(value bool) {
+	b.tbl.write(b, value)
+}
+
+// Makes new object indexBoolean and returns pointer to it.
+func (b *boolean) Index() *indexBoolean {
+	b.idx = true
+	return &indexBoolean{nme: b.nme}
+}
+
+// // Set this column is as primary.
+// func (h *header) AsPrimary() {
+// 	h.pry = true
+// }
+// func (h *header) Index(name string) *Index {
+// 	hsh := &Index{nam: name, hdr: h}
+// 	h.str.hsh = append(h.str.hsh, hsh)
+// 	return hsh
+// }
+
+// Returns postgresql type.
+func (boolean) sql() string {
+	return "BOOLEAN"
+}
 
 // type bollean header
-type whereBool struct {
-	*where
-}
 
 // Returns value from buffer.
 // func (b Bool) Row(reader *reader) bool {
@@ -185,39 +321,29 @@ type whereBool struct {
 // 	return &whereBool{where: &where{col: b}}
 // }
 
-// Returns name for this column.
-// func (b Bool) name() string {
-// 	return b.nam
-// }
-
 // Creates and returms pointer to buffer.
-func (Bool) buf() any {
-	return new(bool)
-}
-
-// Returns postgresql type for this column.
-// func (tt *Bool) tpe() string {
-// 	return "BOOLEAN"
+// func (Bool) buf() any {
+// 	return new(bool)
 // }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
-func (w *whereBool) Equal(value bool) *where {
-	w.where.opr = "="
-	w.where.val = fmt.Sprintf("%t", value)
-	return w.where
-}
+// func (w *whereBool) Equal(value bool) *where {
+// 	w.where.opr = "="
+// 	w.where.val = fmt.Sprintf("%t", value)
+// 	return w.where
+// }
 
-// Seteds operator "<>" for custom value and returns pointer to object where.
-func (w *whereBool) NotEqual(value bool) *where {
-	w.where.opr = "<>"
-	w.where.val = fmt.Sprintf("%t", value)
-	return w.where
-}
+// // Seteds operator "<>" for custom value and returns pointer to object where.
+// func (w *whereBool) NotEqual(value bool) *where {
+// 	w.where.opr = "<>"
+// 	w.where.val = fmt.Sprintf("%t", value)
+// 	return w.where
+// }
 
-// Updates custom value.
-func (w *whereBool) Value(v bool) {
-	w.val = fmt.Sprintf("%t", v)
-}
+// // Updates custom value.
+// func (w *whereBool) Value(v bool) {
+// 	w.val = fmt.Sprintf("%t", v)
+// }
 
 /*
 Type "String", corresponds to the type number in postgresql "TEXT",
@@ -226,11 +352,51 @@ this type implements the interface "column".
 // type String text
 // type text header
 
-type String column
-
-type whereString struct {
-	*where
+type text struct {
+	column
 }
+
+type indexText struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// Write value to a row buffer.
+func (t *text) Write(value string) {
+	t.tbl.write(t, value)
+}
+
+// Set as primary.
+func (t *text) AsPrimary() *text {
+	t.pry = true
+	return t
+}
+
+// Makes new object indexText and returns pointer to it.
+func (t *text) Index() *indexText {
+	t.idx = true
+	return &indexText{nme: t.nme}
+}
+
+// Returns name for this column.
+// func (t *text) name() string {
+// 	return t.nme
+// }
+
+// Returns postgresql type.
+func (text) sql() string {
+	return "TEXT"
+}
+
+// This type is serial.
+func (text) serial() bool {
+	return false
+}
+
+// type whereString struct {
+// 	*where
+// }
 
 // Returns value from buffer.
 // func (s String) Row(reader *reader) string {
@@ -251,59 +417,100 @@ type whereString struct {
 // 	return &whereString{where: &where{col: s}}
 // }
 
-// // Returns name for this column.
-// func (s String) name() string {
-// 	return s.nam
-// }
-
 // Creates and returms pointer to buffer.
-func (String) buf() any {
-	return new(string)
-}
-
-// Returns postgresql type for this column.
-// func (String) tpe() string {
-// 	return "TEXT"
+// func (String) buf() any {
+// 	return new(string)
 // }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
-func (w *whereString) LessOrEqual(value string) *where {
-	w.where.opr = "<="
-	w.where.val = value
-	return w.where
-}
+// func (w *whereString) LessOrEqual(value string) *where {
+// 	w.where.opr = "<="
+// 	w.where.val = value
+// 	return w.where
+// }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
-func (w *whereString) Equal(value string) *where {
-	w.where.opr = "="
-	w.where.val = value
-	return w.where
-}
+// func (w *whereString) Equal(value string) *where {
+// 	w.where.opr = "="
+// 	w.where.val = value
+// 	return w.where
+// }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
-func (w *whereString) NotEqual(value string) *where {
-	w.where.opr = "<>"
-	w.where.val = value
-	return w.where
-}
+// func (w *whereString) NotEqual(value string) *where {
+// 	w.where.opr = "<>"
+// 	w.where.val = value
+// 	return w.where
+// }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
-func (w *whereString) Greater(value string) *where {
-	w.where.opr = ">"
-	w.where.val = value
-	return w.where
-}
+// func (w *whereString) Greater(value string) *where {
+// 	w.where.opr = ">"
+// 	w.where.val = value
+// 	return w.where
+// }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
-func (w *whereString) GreaterOrEqual(value string) *where {
-	w.where.opr = ">="
-	w.where.val = value
-	return w.where
-}
+// func (w *whereString) GreaterOrEqual(value string) *where {
+// 	w.where.opr = ">="
+// 	w.where.val = value
+// 	return w.where
+// }
 
 // Updates custom value.
-func (w *whereString) Value(v string) {
-	w.val = v
+// func (w *whereString) Value(v string) {
+// 	w.val = v
+// }
+
+/*
+Type "Int64", corresponds to the type number in postgresql "BIGINT",
+this type implements the interface "column".
+*/
+// type Int64 bigint
+// type bigint header
+
+type bigint struct {
+	column
+}
+
+type indexBigint struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// Write value to a row buffer.
+func (b *bigint) Write(value int64) {
+	b.tbl.write(b, value)
+}
+
+// Set as primary.
+func (b *bigint) AsPrimary() *bigint {
+	b.pry = true
+	return b
+}
+
+// Makes new object indexBigint and returns pointer to it.
+func (b *bigint) Index() *indexBigint {
+	b.idx = true
+	return &indexBigint{nme: b.nme}
+}
+
+// primary
+
+// Returns name for this column.
+// func (b *bigint) name() string {
+// 	return b.nme
+// }
+
+// Returns postgresql type.
+func (bigint) sql() string {
+	return "BIGINT"
+}
+
+// This type is serial.
+func (bigint) serial() bool {
+	return false
 }
 
 /*
@@ -313,11 +520,31 @@ this type implements the interface "column".
 // type Int64 bigint
 // type bigint header
 
-type Int64 column
-
-type whereInt64 struct {
-	*where
+type serial struct {
+	column
 }
+
+type indexBigserial struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// primary
+
+// Returns name for this column.
+// func (b *bigint) name() string {
+// 	return b.nme
+// }
+
+// Returns postgresql type.
+func (serial) sql() string {
+	return "BIGSERIAL"
+}
+
+// type whereInt64 struct {
+// 	*where
+// }
 
 // Returns value from buffer.
 // func (i Int64) Row(reader *reader) int64 {
@@ -329,69 +556,59 @@ type whereInt64 struct {
 // 	return *reader.buf[idx].(*int64)
 // }
 
-func (i *Int64) Into(value int64) into {
-	return into{hdr: i.header, val: value}
-}
+// func (i *Int64) Into(value int64) into {
+// 	return into{hdr: i.header, val: value}
+// }
 
 // Makes new object whereByInt64 and returns pointer to it.
 // func (i *Int64) Where() *whereInt64 {
 // 	return &whereInt64{where: &where{col: i}}
 // }
 
-// Returns name for this column.
-// func (i Int64) name() string {
-// 	return i.nam
+// Creates and returms pointer to buffer.
+// func (Int64) buf() any {
+// 	return new(int64)
 // }
 
-// Creates and returms pointer to buffer.
-func (Int64) buf() any {
-	return new(int64)
-}
-
-// Returns postgresql type for this column.
-func (Int64) tpe() string {
-	return "BIGINT"
-}
-
 // Seteds operator "<=" for custom value and returns pointer to object where.
-func (w *whereInt64) LessOrEqual(value int64) *where {
-	w.where.opr = "<="
-	w.where.val = fmt.Sprintf("%d", value)
-	return w.where
-}
+// func (w *whereInt64) LessOrEqual(value int64) *where {
+// 	w.where.opr = "<="
+// 	w.where.val = fmt.Sprintf("%d", value)
+// 	return w.where
+// }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
-func (w *whereInt64) Equal(value int64) *where {
-	w.where.opr = "="
-	w.where.val = fmt.Sprintf("%d", value)
-	return w.where
-}
+// func (w *whereInt64) Equal(value int64) *where {
+// 	w.where.opr = "="
+// 	w.where.val = fmt.Sprintf("%d", value)
+// 	return w.where
+// }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
-func (w *whereInt64) NotEqual(value int64) *where {
-	w.where.opr = "<>"
-	w.where.val = fmt.Sprintf("%d", value)
-	return w.where
-}
+// func (w *whereInt64) NotEqual(value int64) *where {
+// 	w.where.opr = "<>"
+// 	w.where.val = fmt.Sprintf("%d", value)
+// 	return w.where
+// }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
-func (w *whereInt64) Greater(value int64) *where {
-	w.where.opr = ">"
-	w.where.val = fmt.Sprintf("%d", value)
-	return w.where
-}
+// func (w *whereInt64) Greater(value int64) *where {
+// 	w.where.opr = ">"
+// 	w.where.val = fmt.Sprintf("%d", value)
+// 	return w.where
+// }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
-func (w *whereInt64) GreaterOrEqual(value int64) *where {
-	w.where.opr = ">="
-	w.where.val = fmt.Sprintf("%d", value)
-	return w.where
-}
+// func (w *whereInt64) GreaterOrEqual(value int64) *where {
+// 	w.where.opr = ">="
+// 	w.where.val = fmt.Sprintf("%d", value)
+// 	return w.where
+// }
 
 // Updates custom value.
-func (w *whereInt64) Value(v int64) {
-	w.val = fmt.Sprintf("%d", v)
-}
+// func (w *whereInt64) Value(v int64) {
+// 	w.val = fmt.Sprintf("%d", v)
+// }
 
 /*
 Type "Float64", corresponds to the type number in postgresql "NUMERIC",
@@ -400,10 +617,46 @@ this type implements the interface "column".
 // type Float64 numeric
 // type numeric header
 
-type Float64 column
-type whereFloat64 struct {
-	*where
+type numeric struct {
+	column
 }
+
+type indexNumeric struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// Write value to a row buffer.
+func (n *numeric) Write(value float64) {
+	n.tbl.write(n, value)
+}
+
+// Set as primary.
+func (n *numeric) AsPrimary() *numeric {
+	n.pry = true
+	return n
+}
+
+// Makes new object indexNumeric and returns pointer to it.
+func (n *numeric) Index() *indexNumeric {
+	n.idx = true
+	return &indexNumeric{nme: n.nme}
+}
+
+// Returns name for this column.
+// func (n *numeric) name() string {
+// 	return n.nme
+// }
+
+// Returns postgresql type.
+func (numeric) sql() string {
+	return "NUMERIC"
+}
+
+// type whereFloat64 struct {
+// 	*where
+// }
 
 // Returns value from buffer.
 // func (f Float64) Row(reader *reader) float64 {
@@ -424,60 +677,50 @@ type whereFloat64 struct {
 // 	return &whereFloat64{where: &where{col: f}}
 // }
 
-// // Returns name for this column.
-// func (f Float64) nam() string {
-// 	return strings.ToLower(string(f))
-// }
-
 // Create and returms pointer to buffer.
-func (Float64) buf() any {
-	return new(float64)
-}
-
-// Returns postgresql type for this column.
-// func (Float64) tpe() string {
-// 	return "NUMERIC"
+// func (Float64) buf() any {
+// 	return new(float64)
 // }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
-func (w *whereFloat64) LessOrEqual(value float64) *where {
-	w.where.opr = "<="
-	w.where.val = fmt.Sprintf("%f", value)
-	return w.where
-}
+// func (w *whereFloat64) LessOrEqual(value float64) *where {
+// 	w.where.opr = "<="
+// 	w.where.val = fmt.Sprintf("%f", value)
+// 	return w.where
+// }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
-func (w *whereFloat64) Equal(value float64) *where {
-	w.where.opr = "="
-	w.where.val = fmt.Sprintf("%f", value)
-	return w.where
-}
+// func (w *whereFloat64) Equal(value float64) *where {
+// 	w.where.opr = "="
+// 	w.where.val = fmt.Sprintf("%f", value)
+// 	return w.where
+// }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
-func (w *whereFloat64) NotEqual(value float64) *where {
-	w.where.opr = "<>"
-	w.where.val = fmt.Sprintf("%f", value)
-	return w.where
-}
+// func (w *whereFloat64) NotEqual(value float64) *where {
+// 	w.where.opr = "<>"
+// 	w.where.val = fmt.Sprintf("%f", value)
+// 	return w.where
+// }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
-func (w *whereFloat64) Greater(value float64) *where {
-	w.where.opr = ">"
-	w.where.val = fmt.Sprintf("%f", value)
-	return w.where
-}
+// func (w *whereFloat64) Greater(value float64) *where {
+// 	w.where.opr = ">"
+// 	w.where.val = fmt.Sprintf("%f", value)
+// 	return w.where
+// }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
-func (w *whereFloat64) GreaterOrEqual(value float64) *where {
-	w.where.opr = ">="
-	w.where.val = fmt.Sprintf("%f", value)
-	return w.where
-}
+// func (w *whereFloat64) GreaterOrEqual(value float64) *where {
+// 	w.where.opr = ">="
+// 	w.where.val = fmt.Sprintf("%f", value)
+// 	return w.where
+// }
 
 // Updates custom value.
-func (w *whereFloat64) Value(v float64) {
-	w.val = fmt.Sprintf("%f", v)
-}
+// func (w *whereFloat64) Value(v float64) {
+// 	w.val = fmt.Sprintf("%f", v)
+// }
 
 /*
 Type "Time", corresponds to the type number in postgresql "TIMESTAMP WITHOUT TIME ZONE",
@@ -486,11 +729,46 @@ this type implements the interface "column".
 // type Time timestamp
 // type timestamp header
 
-type Time column
-
-type whereTime struct {
-	*where
+type timestamp struct {
+	column
 }
+
+type indexTimestamp struct {
+	nme string // Name of column.
+	opr string // Operator.
+	val string // Value.
+}
+
+// Write value to a row buffer.
+func (t *timestamp) Write(value time.Time) {
+	t.tbl.write(t, value)
+}
+
+// Set as primary.
+func (t *timestamp) AsPrimary() *timestamp {
+	t.pry = true
+	return t
+}
+
+// Makes new object indexTimestamp and returns pointer to it.
+func (t *timestamp) Index() *indexTimestamp {
+	t.idx = true
+	return &indexTimestamp{nme: t.nme}
+}
+
+// Returns name for this column.
+// func (t *timestamp) name() string {
+// 	return t.nme
+// }
+
+// Returns postgresql type.
+func (timestamp) sql() string {
+	return "TIMESTAMP WITHOUT TIME ZONE"
+}
+
+// type whereTime struct {
+// 	*where
+// }
 
 // Returns value from buffer.
 // func (t Time) Row(reader *reader) time.Time {
@@ -512,63 +790,53 @@ type whereTime struct {
 // 	return &whereTime{where: &where{col: t}}
 // }
 
-// // Returns name for this column.
-// func (t Time) nam() string {
-// 	return strings.ToLower(string(t))
-// }
-
 // Create and returms pointer to buffer.
-func (Time) buf() any {
-	return new(time.Time)
-}
-
-// Returns postgresql type for this column.
-// func (Time) tpe() string {
-// 	return "TIMESTAMP WITHOUT TIME ZONE"
+// func (Time) buf() any {
+// 	return new(time.Time)
 // }
 
 // Seteds operator "<=" for custom value and returns pointer to object where.
-func (w *whereTime) LessOrEqual(value time.Time) *where {
-	value = value.UTC()
-	w.where.opr = "<="
-	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.where
-}
+// func (w *whereTime) LessOrEqual(value time.Time) *where {
+// 	value = value.UTC()
+// 	w.where.opr = "<="
+// 	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	return w.where
+// }
 
 // Seteds operator "=" for custom value and returns pointer to object where.
-func (w *whereTime) Equal(value time.Time) *where {
-	value = value.UTC()
-	w.where.opr = "="
-	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.where
-}
+// func (w *whereTime) Equal(value time.Time) *where {
+// 	value = value.UTC()
+// 	w.where.opr = "="
+// 	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	return w.where
+// }
 
 // Seteds operator "<>" for custom value and returns pointer to object where.
-func (w *whereTime) NotEqual(value time.Time) *where {
-	value = value.UTC()
-	w.where.opr = "<>"
-	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.where
-}
+// func (w *whereTime) NotEqual(value time.Time) *where {
+// 	value = value.UTC()
+// 	w.where.opr = "<>"
+// 	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	return w.where
+// }
 
 // Seteds operator ">" for custom value and returns pointer to object where.
-func (w *whereTime) Greater(value time.Time) *where {
-	value = value.UTC()
-	w.where.opr = ">"
-	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.where
-}
+// func (w *whereTime) Greater(value time.Time) *where {
+// 	value = value.UTC()
+// 	w.where.opr = ">"
+// 	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	return w.where
+// }
 
 // Seteds operator ">=" for custom value and returns pointer to object where.
-func (w *whereTime) GreaterOrEqual(value time.Time) *where {
-	value = value.UTC()
-	w.where.opr = ">="
-	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
-	return w.where
-}
+// func (w *whereTime) GreaterOrEqual(value time.Time) *where {
+// 	value = value.UTC()
+// 	w.where.opr = ">="
+// 	w.where.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())
+// 	return w.where
+// }
 
 // Updates custom value.
-func (w *whereTime) Value(v time.Time) {
-	v = v.UTC()
-	w.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", v.Year(), v.Month(), v.Day(), v.Hour(), v.Minute(), v.Second(), v.Nanosecond())
-}
+// func (w *whereTime) Value(v time.Time) {
+// 	v = v.UTC()
+// 	w.val = fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", v.Year(), v.Month(), v.Day(), v.Hour(), v.Minute(), v.Second(), v.Nanosecond())
+// }
