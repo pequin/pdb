@@ -49,7 +49,7 @@ func (r *reader) Offset(value uint64) {
 func (r *reader) limit() string {
 
 	str := "NULL"
-	if r.off > 0 {
+	if r.lim > 0 {
 		str = strconv.FormatUint(uint64(r.lim), 10)
 	}
 
