@@ -29,6 +29,7 @@ type Type interface {
 	primary() bool //Is primary.
 	indexed() bool // Is indexed.
 	sql() string   // Postgresql type.
+	buffer() any   // Pointer to buffer.
 
 }
 
@@ -43,12 +44,19 @@ type column struct {
 	nme string // Name.
 	pry bool   // Is primary.
 	idx bool   // Is indexed.
+
 }
 
 func (c *column) update(value any, filer *filter) {
 
 	if value != nil {
-		_, err := c.tbl.stx.Exec(fmt.Sprintf("UPDATE %s SET %s = $1%s;", c.tbl.name(), c.nme, filer.where(c.tbl)), value)
+
+		str := []string{fmt.Sprintf("UPDATE %s SET %s = $1", c.tbl.name(), c.nme)}
+
+		if f := filer.where(c.tbl); len(f) > 0 {
+			str = append(str, f)
+		}
+		_, err := c.tbl.stx.Exec(strings.Join(str, " "), value)
 		xlog.Fatalln(err)
 	}
 }
@@ -70,14 +78,14 @@ func (c *column) indexed() bool {
 
 // The first argument is a name of new column, and the value returned is a pointer to a column type boolean newly associated with this table.
 func (t *types) Bool(name string) *boolean {
-	typ := &boolean{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	typ := &boolean{column: column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
 
 // The first argument is a name of new column, and the value returned is a pointer to a column type bigint newly associated with this table.
 func (t *types) Int64(name string) *bigint {
-	typ := &bigint{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	typ := &bigint{column: column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
@@ -85,7 +93,7 @@ func (t *types) Int64(name string) *bigint {
 // The first argument is a name of new column, and the value returned is a pointer to a column type serial newly associated with this table.
 func (t *types) Serial(name string) *serial {
 	if t.ser == nil {
-		t.ser = &serial{column{tbl: t.tbl, nme: name, pry: true, idx: false}}
+		t.ser = &serial{column: column{tbl: t.tbl, nme: name, pry: true, idx: false}}
 	} else {
 		xlog.Fatallf("A column of type series \"%s\" is already associated with the table: %s", t.ser.nme, t.tbl.nme)
 	}
@@ -94,21 +102,21 @@ func (t *types) Serial(name string) *serial {
 
 // The first argument is a name of new column, and the value returned is a pointer to a column type numeric newly associated with this table.
 func (t *types) Float64(name string) *numeric {
-	typ := &numeric{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	typ := &numeric{column: column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
 
 // The first argument is a name of new column, and the value returned is a pointer to a column type text newly associated with this table.
 func (t *types) String(name string) *text {
-	typ := &text{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	typ := &text{column: column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
 
 // The first argument is a name of new column, and the value returned is a pointer to a column type timestamp newly associated with this table.
 func (t *types) Time(name string) *timestamp {
-	typ := &timestamp{column{tbl: t.tbl, nme: name, pry: false, idx: false}}
+	typ := &timestamp{column: column{tbl: t.tbl, nme: name, pry: false, idx: false}}
 	t.cls = append(t.cls, typ)
 	return typ
 }
@@ -146,6 +154,7 @@ func (t *types) primary() []string {
 // Type boolean, corresponds to the type in postgresql BOOLEAN and implements the interface a column.
 type boolean struct {
 	column
+	buf bool
 }
 type indexBoolean struct {
 	idx *index
@@ -154,6 +163,11 @@ type indexBoolean struct {
 // Write value to a row buffer.
 func (b *boolean) Write(value bool) {
 	b.tbl.write(b, value)
+}
+
+// Returns  value from buffer.
+func (b *boolean) Read() bool {
+	return b.buf
 }
 
 // Updates the values ​​in a column.
@@ -182,9 +196,15 @@ func (boolean) sql() string {
 	return "BOOLEAN"
 }
 
+// Returns pointer to buffer.
+func (b *boolean) buffer() any {
+	return &b.buf
+}
+
 // Type bigint, corresponds to the type in postgresql TEXT and implements the interface a column.
 type bigint struct {
 	column
+	buf int64
 }
 type indexBigint struct {
 	idx *index
@@ -193,6 +213,11 @@ type indexBigint struct {
 // Write value to a row buffer.
 func (b *bigint) Write(value int64) {
 	b.tbl.write(b, value)
+}
+
+// Returns  value from buffer.
+func (b *bigint) Read() int64 {
+	return b.buf
 }
 
 // Updates the values ​​in a column.
@@ -247,9 +272,20 @@ func (bigint) sql() string {
 	return "BIGINT"
 }
 
+// Returns pointer to buffer.
+func (b *bigint) buffer() any {
+	return &b.buf
+}
+
 // Type serial, corresponds to the type in postgresql BIGSERIAL and implements the interface a column.
 type serial struct {
 	column
+	buf int64
+}
+
+// Returns  value from buffer.
+func (b *serial) Read() int64 {
+	return b.buf
 }
 
 // Makes new object indexBigint and returns pointer to it.
@@ -263,9 +299,15 @@ func (serial) sql() string {
 	return "BIGSERIAL"
 }
 
+// Returns pointer to buffer.
+func (s *serial) buffer() any {
+	return &s.buf
+}
+
 // Type numeric, corresponds to the type in postgresql NUMERIC and implements the interface a column.
 type numeric struct {
 	column
+	buf float64
 }
 type indexNumeric struct {
 	idx *index
@@ -274,6 +316,11 @@ type indexNumeric struct {
 // Write value to a row buffer.
 func (n *numeric) Write(value float64) {
 	n.tbl.write(n, value)
+}
+
+// Returns  value from buffer.
+func (n *numeric) Read() float64 {
+	return n.buf
 }
 
 // Updates the values ​​in a column.
@@ -328,9 +375,15 @@ func (numeric) sql() string {
 	return "NUMERIC"
 }
 
+// Returns pointer to buffer.
+func (n *numeric) buffer() any {
+	return &n.buf
+}
+
 // Type text, corresponds to the type in postgresql TEXT and implements the interface a column.
 type text struct {
 	column
+	buf string
 }
 type indexText struct {
 	idx *index
@@ -339,6 +392,11 @@ type indexText struct {
 // Write value to a row buffer.
 func (t *text) Write(value string) {
 	t.tbl.write(t, value)
+}
+
+// Returns  value from buffer.
+func (t *text) Read() string {
+	return t.buf
 }
 
 // Updates the values ​​in a column.
@@ -393,9 +451,15 @@ func (text) sql() string {
 	return "TEXT"
 }
 
+// Returns pointer to buffer.
+func (t *text) buffer() any {
+	return &t.buf
+}
+
 // Type timestamp, corresponds to the type in postgresql TIMESTAMP WITHOUT TIME ZONE and implements the interface a column.
 type timestamp struct {
 	column
+	buf time.Time
 }
 type indexTimestamp struct {
 	idx *index
@@ -404,6 +468,11 @@ type indexTimestamp struct {
 // Write value to a row buffer.
 func (t *timestamp) Write(value time.Time) {
 	t.tbl.write(t, value.UTC())
+}
+
+// Returns  value from buffer.
+func (t *timestamp) Read() time.Time {
+	return t.buf
 }
 
 // Updates the values ​​in a column.
@@ -462,4 +531,9 @@ func (i *indexTimestamp) GreaterOrEqual(value time.Time) *index {
 // Returns postgresql type.
 func (timestamp) sql() string {
 	return "TIMESTAMP WITHOUT TIME ZONE"
+}
+
+// Returns pointer to buffer.
+func (t *timestamp) buffer() any {
+	return &t.buf
 }

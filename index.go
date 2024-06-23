@@ -16,11 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Creates and returms pointer to buffer.
-// func (Bool) buf() any {
-// 	return new(bool)
-// }
-
 type index struct {
 	nme string // Name of column.
 	opr string // Operator.

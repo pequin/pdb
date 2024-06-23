@@ -35,7 +35,3 @@ func (d *database) Schema(name string) *schema {
 	xlog.Fatalln(err)
 	return &schema{nme: strings.ToLower(name), con: con}
 }
-
-// func (s *schema) Table(name string) *table {
-// 	return &table{nm: name, sh: s}
-// }

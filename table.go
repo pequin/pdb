@@ -27,6 +27,7 @@ limitations under the License.
 
 type table struct {
 	Type types
+	Read reader
 	nme  string  // Name.
 	sdb  *schema // Schema of database.
 	stx  *sql.Tx // Transaction
@@ -37,16 +38,12 @@ type table struct {
 		qry string //Query
 		row []any
 	}
-
-	// idx map[column]int    // Column indexes.
-	// cpk []column          // Columns of primary keys.
-	// hsh []*Index // Hash columns.
-
 }
 
 func (s *schema) Table(name string) *table {
 	t := &table{nme: strings.ToLower(name), sdb: s, isi: false}
 	t.Type.tbl = t
+	t.Read.tbl = t
 	t.begin()
 	return t
 }
@@ -74,8 +71,20 @@ func (t *table) init() {
 
 		cl := len(t.Type.cls)
 
+		bl := cl // Buffer length.
+
+		if t.Type.ser != nil {
+			bl++
+		}
+
 		hdr := make([]string, cl) // Headers.
 		iio := make([]string, cl) // Variables for insertinto.
+
+		t.Read.buf = make([]any, bl)
+
+		if t.Type.ser != nil {
+			t.Read.buf[0] = t.Type.ser.buffer()
+		}
 
 		hap := make([]string, 0) // Headers and primary keys.
 
@@ -87,6 +96,14 @@ func (t *table) init() {
 			hdr[i] = t.Type.cls[i].name()
 			iio[i] = fmt.Sprintf("$%d", i+1)
 			hap = append(hap, fmt.Sprintf("%s %s NOT NULL", hdr[i], t.Type.cls[i].sql()))
+
+			if t.Type.ser == nil {
+
+				t.Read.buf[i] = t.Type.cls[i].buffer()
+			} else {
+
+				t.Read.buf[i+1] = t.Type.cls[i].buffer()
+			}
 		}
 
 		if p := t.Type.primary(); len(p) > 0 {
@@ -99,6 +116,13 @@ func (t *table) init() {
 		xlog.Fatalln(err)
 
 		t.Type.createIndexes()
+
+		// Reader.
+		t.Read.cls = strings.Join(hdr, ", ")
+
+		if t.Type.ser != nil {
+			t.Read.cls = fmt.Sprintf("%s, %s", t.Type.ser.name(), t.Read.cls)
+		}
 
 		// Writer.
 		t.wrt.qry = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", t.name(), strings.Join(hdr, ", "), strings.Join(iio, ", "))

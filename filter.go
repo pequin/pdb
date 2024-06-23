@@ -57,5 +57,5 @@ func (f *filter) where(table *table) string {
 		str = append(str, fmt.Sprintf("%s %s.%s %s '%s'", log, table.name(), f.nxt[i].nme, f.nxt[i].opr, f.nxt[i].val))
 	}
 
-	return " WHERE " + strings.Join(str, " ")
+	return "WHERE " + strings.Join(str, " ")
 }

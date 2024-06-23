@@ -1,5 +1,10 @@
 package pdb
 
+import (
+	"fmt"
+	"strings"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,43 +21,44 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// type order struct {
-// 	col column // Column.
-// 	asc bool   // Logic for order by - true is as asc, false is as desc.
-// }
-// type sort struct {
-// 	ord []order
-// }
+type sort struct {
+	col []Type // Column.
+	asc []bool // Logic for order by - true is as asc, false is as desc.
+}
 
-// func (s *sort) Asc(by column) {
-// 	s.ord = append(s.ord, order{col: by, asc: true})
+func (s *sort) Asc(by Type) *sort {
+	s.col = append(s.col, by)
+	s.asc = append(s.asc, true)
+	return s
 
-// }
-// func (s *sort) Desc(by column) {
-// 	s.ord = append(s.ord, order{col: by, asc: false})
-// }
+}
+func (s *sort) Desc(by Type) *sort {
+	s.col = append(s.col, by)
+	s.asc = append(s.asc, false)
+	return s
+}
 
-// func (s *sort) string(table *table) string {
+func (s *sort) order(table *table) string {
 
-// 	if s == nil {
-// 		return ""
-// 	}
+	if len(s.col) < 1 {
+		return ""
+	}
 
-// 	str := make([]string, 0)
+	log := ""
 
-// 	log := ""
+	str := make([]string, len(s.col))
 
-// 	for i := 0; i < len(s.ord); i++ {
+	for i := 0; i < len(s.col); i++ {
 
-// 		if s.ord[i].asc {
-// 			log = "ASC"
-// 		} else {
-// 			log = "DESC"
-// 		}
+		if s.asc[i] {
+			log = "ASC"
+		} else {
+			log = "DESC"
+		}
 
-// 		// str = append(str, fmt.Sprintf("%s.%s %s", table.name(), s.ord[i].col.nam(), log))
-// 		str = append(str, "nfgfgn"+log)
-// 	}
+		str[i] = fmt.Sprintf("%s.%s %s", table.name(), s.col[i].name(), log)
 
-// 	return "ORDER BY " + strings.Join(str, ", ")
-// }
+	}
+
+	return "ORDER BY " + strings.Join(str, ", ")
+}
