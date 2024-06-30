@@ -1,8 +1,6 @@
 package pdb
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -29,8 +27,8 @@ type Table table
 type table struct {
 	nme     string
 	sma     *Schema
-	stx     *sql.Tx
 	Columns columns
+	Data    data
 }
 
 func (t *Table) init(name string, schema *Schema) error {
@@ -51,43 +49,11 @@ func (t *Table) init(name string, schema *Schema) error {
 	if err := t.Columns.init(t); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (t *Table) begin() error {
-
-	if t.stx == nil {
-
-		stx, err := t.sma.dba.db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
-		if err != nil {
-			return err
-		}
-
-		t.stx = stx
-	}
-
-	return nil
-}
-
-func (t *Table) commit() error {
-	if t.stx == nil {
-		return fmt.Errorf("pointer to transaction is null")
-	}
-
-	if err := t.stx.Commit(); err != nil {
-
-		if err := t.stx.Rollback(); err != nil {
-			return err
-		}
-
+	if err := t.Data.init(t); err != nil {
 		return err
 	}
 
-	t.stx = nil
-
 	return nil
-
 }
 
 func (t *Table) Create() {
@@ -103,50 +69,53 @@ func (t *Table) Create() {
 	}
 }
 
-func (t *Table) Insert(row ...insert) {
+// func (t *Table) Insert(row ...insert) {
 
-	if len(row) != t.Columns.len() {
-		log.Fatalln("Error table insert: line row does not match header length.")
-	}
+// 	if len(row) != t.Columns.len() {
+// 		log.Fatalln("Error table insert: line row does not match header length.")
+// 	}
 
-	buf := make([]any, t.Columns.len())
-	vls := make([]string, t.Columns.len())
+// 	buf := make([]any, t.Columns.len())
+// 	vls := make([]string, t.Columns.len())
 
-	hdr, err := t.Columns.header()
-	if err != nil {
-		log.Fatalf("Error table insert: %s.", err.Error())
-	}
+// 	hdr, err := t.Columns.header()
+// 	if err != nil {
+// 		log.Fatalf("Error table insert: %s.", err.Error())
+// 	}
 
-	for i := 0; i < t.Columns.len(); i++ {
+// 	for i := 0; i < t.Columns.len(); i++ {
 
-		idx, err := t.Columns.index(row[i].clm)
-		if err != nil {
-			log.Fatalf("Error table insert: %s.", err.Error())
-		}
+// 		idx, err := t.Columns.index(row[i].clm)
+// 		if err != nil {
+// 			log.Fatalf("Error table insert: %s.", err.Error())
+// 		}
 
-		buf[idx] = row[i].vle
-		vls[idx] = fmt.Sprintf("$%d", idx+1)
-	}
+// 		buf[idx] = row[i].vle
+// 		vls[idx] = fmt.Sprintf("$%d", idx+1)
+// 	}
 
-	qry := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s);", t.sma.nme, t.nme, strings.Join(hdr, ", "), strings.Join(vls, ", "))
+// 	qry := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s);", t.sma.nme, t.nme, strings.Join(hdr, ", "), strings.Join(vls, ", "))
 
-	if err := t.begin(); err != nil {
-		log.Fatalf("Error table insert: %s.", err.Error())
-	}
+// 	if err := t.begin(); err != nil {
+// 		log.Fatalf("Error table insert: %s.", err.Error())
+// 	}
 
-	if t.stx == nil {
-		log.Fatalln("Error table insert: pointer to transaction is null.")
-	}
+// 	if t.stx == nil {
+// 		log.Fatalln("Error table insert: pointer to transaction is null.")
+// 	}
 
-	if _, err := t.stx.Exec(qry, buf...); err != nil {
-		log.Fatalf("Error table insert: %s.", err.Error())
-	}
+// 	if _, err := t.stx.Exec(qry, buf...); err != nil {
+// 		log.Fatalf("Error table insert: %s.", err.Error())
+// 	}
 
+// }
+
+type Listener listener
+type listener struct {
+	clm Column
+	buf any
 }
 
-func (t *Table) Commit() {
+// func (s *Select) Filter() {
 
-	if err := t.commit(); err != nil {
-		log.Fatalf("Error table commit: %s.", err.Error())
-	}
-}
+// }

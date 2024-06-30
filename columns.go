@@ -44,20 +44,20 @@ func (c *columns) len() int {
 	return len(c.hdr)
 }
 
-func (c *columns) header() ([]string, error) {
+// func (c *columns) header() ([]string, error) {
 
-	if c.len() < 1 {
-		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbl.nme)
-	}
+// 	if c.len() < 1 {
+// 		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbl.nme)
+// 	}
 
-	hdr := make([]string, c.len())
+// 	hdr := make([]string, c.len())
 
-	for clm, idx := range c.hdr {
-		hdr[idx] = clm.name()
-	}
+// 	for clm, idx := range c.hdr {
+// 		hdr[idx] = clm.name()
+// 	}
 
-	return hdr, nil
-}
+// 	return hdr, nil
+// }
 
 func (c *columns) index(column Column) (int, error) {
 
@@ -69,16 +69,16 @@ func (c *columns) index(column Column) (int, error) {
 	return -1, fmt.Errorf("column in table \"%s\" not found", c.tbl.nme)
 }
 
-func (c *columns) column(index int) (Column, error) {
+// func (c *columns) column(index int) (Column, error) {
 
-	for clm, idx := range c.hdr {
-		if idx == index {
-			return clm, nil
-		}
-	}
+// 	for clm, idx := range c.hdr {
+// 		if idx == index {
+// 			return clm, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("column in table \"%s\" at index \"%d\" not found", c.tbl.nme, index)
-}
+// 	return nil, fmt.Errorf("column in table \"%s\" at index \"%d\" not found", c.tbl.nme, index)
+// }
 
 func (c *columns) datatypes() ([]string, error) {
 

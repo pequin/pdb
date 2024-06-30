@@ -2,6 +2,8 @@ package pdb
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 )
 
@@ -50,11 +52,22 @@ func (Int64) datatype() string {
 	return "BIGINT"
 }
 
-func (i *Int64) Insert(value int64) insert {
-	return insert{clm: i, vle: value}
+// Implementation of the "Column" interface.
+func (i *Int64) table() *Table {
+	return i.tbl
 }
 
-type insert struct {
-	clm Column
-	vle any
+// func (i *Int64) Insert(value int64) insert {
+// 	return insert{clm: i, vle: value}
+// }
+
+func (i *Int64) Listen(value *int64) Listener {
+	if value == nil {
+		log.Fatalf("Error int64 create listen for column with name \"%s\": pointer to value is null.", i.nme)
+	}
+	return Listener{clm: i, buf: value}
+}
+
+func (i *Int64) Is(value int64) is {
+	return is{c: i, v: fmt.Sprintf("%d", value)}
 }

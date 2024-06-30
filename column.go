@@ -24,11 +24,17 @@ limitations under the License.
 type Column interface {
 	name() string
 	datatype() string
+	table() *Table
 }
 type column struct {
 	nme string
 	tbl *Table
 }
+
+// type insert struct {
+// 	clm Column
+// 	vle any
+// }
 
 func (c *column) init(table *Table) error {
 
@@ -55,3 +61,7 @@ func (c column) Int64(name string) *Int64 {
 
 	return clm
 }
+
+// func (w *Where) And(f *Filter) *Filter {
+// 	return &Filter{whr: w, log: true, next: f}
+// }

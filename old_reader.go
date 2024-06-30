@@ -24,7 +24,7 @@ import (
 // limitations under the License.
 // */
 
-type reader struct {
+type old_reader struct {
 	Sort sort        // Specifies the sort order.
 	tbl  *old_table  // Table.
 	flt  *old_filter // Filter.
@@ -34,19 +34,19 @@ type reader struct {
 	buf  []any       // Buffer.
 }
 
-func (r *reader) Filter(where *old_filter) {
+func (r *old_reader) Filter(where *old_filter) {
 	r.flt = where
 }
 
-func (r *reader) Limit(value uint64) {
+func (r *old_reader) Limit(value uint64) {
 	r.lim = value
 }
 
-func (r *reader) Offset(value uint64) {
+func (r *old_reader) Offset(value uint64) {
 	r.off = value
 }
 
-func (r *reader) limit() string {
+func (r *old_reader) limit() string {
 
 	str := "NULL"
 	if r.lim > 0 {
@@ -55,7 +55,7 @@ func (r *reader) limit() string {
 
 	return fmt.Sprintf("LIMIT %s", str)
 }
-func (r *reader) offset() string {
+func (r *old_reader) offset() string {
 
 	str := "NULL"
 	if r.off > 0 {
@@ -65,7 +65,7 @@ func (r *reader) offset() string {
 	return fmt.Sprintf("OFFSET %s", str)
 }
 
-func (r *reader) query(table *old_table) string {
+func (r *old_reader) query(table *old_table) string {
 
 	table.init()
 
@@ -85,7 +85,7 @@ func (r *reader) query(table *old_table) string {
 	return strings.Join(str, " ")
 }
 
-func (r *reader) Rows(row func()) {
+func (r *old_reader) Rows(row func()) {
 
 	qry := r.query(r.tbl)
 

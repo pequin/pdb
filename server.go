@@ -2,7 +2,6 @@ package pdb
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 )
@@ -46,13 +45,13 @@ func (s *Server) init(opt *Options) error {
 	pwd := strings.TrimSpace(opt.Password)
 
 	if len(adr) < 1 {
-		return errors.New("server init: address is not specified")
+		return errors.New("address is not specified")
 	}
 	if len(usr) < 1 {
-		return errors.New("server init: username is not specified")
+		return errors.New("username is not specified")
 	}
 	if len(pwd) < 1 {
-		return errors.New("server init: password is not specified")
+		return errors.New("password is not specified")
 	}
 
 	s.adr = adr
@@ -61,7 +60,7 @@ func (s *Server) init(opt *Options) error {
 	s.pwd = pwd
 
 	if err := s.Databases.init(s); err != nil {
-		return fmt.Errorf("server init: %w", err)
+		return err
 	}
 
 	return nil
@@ -76,4 +75,8 @@ func NewServer(options *Options) *Server {
 	}
 
 	return s
+}
+
+func NewFilter(w *Where) {
+
 }

@@ -27,7 +27,7 @@ limitations under the License.
 
 type old_table struct {
 	Type types
-	Read reader
+	Read old_reader
 	nme  string      // Name.
 	sdb  *old_schema // Schema of database.
 	stx  *sql.Tx     // Transaction
