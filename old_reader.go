@@ -25,16 +25,16 @@ import (
 // */
 
 type reader struct {
-	Sort sort    // Specifies the sort order.
-	tbl  *table  // Table.
-	flt  *filter // Filter.
-	cls  string  //Columns
-	lim  uint64  // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
-	off  uint64  // Skip that many rows before beginning to return rows.
-	buf  []any   // Buffer.
+	Sort sort        // Specifies the sort order.
+	tbl  *old_table  // Table.
+	flt  *old_filter // Filter.
+	cls  string      //Columns
+	lim  uint64      // Limit count is given, no more than that many rows will be returned (but possibly fewer, if the query itself yields fewer rows).
+	off  uint64      // Skip that many rows before beginning to return rows.
+	buf  []any       // Buffer.
 }
 
-func (r *reader) Filter(where *filter) {
+func (r *reader) Filter(where *old_filter) {
 	r.flt = where
 }
 
@@ -65,7 +65,7 @@ func (r *reader) offset() string {
 	return fmt.Sprintf("OFFSET %s", str)
 }
 
-func (r *reader) query(table *table) string {
+func (r *reader) query(table *old_table) string {
 
 	table.init()
 

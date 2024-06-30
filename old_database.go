@@ -1,5 +1,9 @@
 package pdb
 
+import (
+	_ "github.com/lib/pq"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,5 +20,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Index struct {
-}
+// type database struct {
+// 	dba *sql.DB
+// }
+
+// func OldDatabase(name, user, password, host string, port uint64) *database {
+// 	d, e := sql.Open("postgres", fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, name))
+// 	xlog.Fatalln(e)
+// 	return &database{dba: d}
+// }

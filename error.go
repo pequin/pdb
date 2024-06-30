@@ -16,5 +16,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Index struct {
-}
+// type Error struct {
+// 	s string // Name of structure.
+// 	m string // Name of method.
+// 	e error  // Error.
+// }
+
+// func (e Error) Error() string {
+// 	l := make([]string, 0)
+// 	if len(e.s) > 0 {
+// 		l = append(l, fmt.Sprintf("%s", strings.ToLower(e.s)))
+// 	}
+// 	if len(e.m) > 0 {
+// 		l = append(l, fmt.Sprintf("%s", strings.ToLower(e.m)))
+// 	}
+// 	if e.e != nil {
+// 		l = append(l, fmt.Sprintf("%s", strings.ToLower(e.e.Error())))
+// 	}
+// 	return strings.Join(l, " > ")
+// }

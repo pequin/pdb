@@ -21,24 +21,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type filter struct {
-	idx *index   // Main expression.
-	nxt []*index // Subsequent expressions.
-	log []bool   // Logic for join the next expression - true is as AND, false is as OR.
+type old_filter struct {
+	idx *old_index   // Main expression.
+	nxt []*old_index // Subsequent expressions.
+	log []bool       // Logic for join the next expression - true is as AND, false is as OR.
 }
 
-func (f *filter) And(index *index) *filter {
+func (f *old_filter) And(index *old_index) *old_filter {
 	f.nxt = append(f.nxt, index)
 	f.log = append(f.log, true)
 	return f
 }
-func (f *filter) Or(index *index) *filter {
+func (f *old_filter) Or(index *old_index) *old_filter {
 	f.nxt = append(f.nxt, index)
 	f.log = append(f.log, false)
 	return f
 }
 
-func (f *filter) where(table *table) string {
+func (f *old_filter) where(table *old_table) string {
 
 	if f == nil {
 		return ""

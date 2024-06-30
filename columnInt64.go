@@ -2,8 +2,6 @@ package pdb
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"strings"
 )
 
@@ -23,38 +21,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Schema schema
-type schema struct {
-	nme    string
-	dba    *Database
-	Tables tables
-}
+type Int64 column
 
-func (s *Schema) init(name string, database *Database) error {
-
+func (i *Int64) init(name string, table *Table) error {
 	name = strings.TrimSpace(name)
 
 	if len(name) < 1 {
-		return errors.New("name is not specified")
+		return errors.New("int64 init: name is not specified")
 	}
 
-	if database == nil {
-		return errors.New("pointer to database is null")
+	if table == nil {
+		return errors.New("int64 init: pointer to table is null")
 	}
 
-	s.nme = name
-	s.dba = database
-
-	if err := s.Tables.init(s); err != nil {
-		return err
-	}
+	i.nme = name
+	i.tbl = table
 
 	return nil
 }
 
-func (s *Schema) Create() {
+// Implementation of the "Column" interface.
+func (i *Int64) name() string {
+	return i.nme
+}
 
-	if _, err := s.dba.db.Exec(fmt.Sprintf("CREATE SCHEMA %s;", s.nme)); err != nil {
-		log.Fatalf("Error schema create: %s.", err.Error())
-	}
+// Implementation of the "Column" interface.
+func (Int64) datatype() string {
+	return "BIGINT"
+}
+
+func (i *Int64) Insert(value int64) insert {
+	return insert{clm: i, vle: value}
+}
+
+type insert struct {
+	clm Column
+	vle any
 }

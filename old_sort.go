@@ -38,7 +38,7 @@ func (s *sort) Desc(by Type) *sort {
 	return s
 }
 
-func (s *sort) order(table *table) string {
+func (s *sort) order(table *old_table) string {
 
 	if len(s.col) < 1 {
 		return ""

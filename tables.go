@@ -1,5 +1,10 @@
 package pdb
 
+import (
+	"errors"
+	"log"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,5 +21,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Index struct {
+type tables struct {
+	schema *Schema
+}
+
+func (t *tables) init(schema *Schema) error {
+
+	if schema == nil {
+		return errors.New("pointer to schema is null")
+	}
+
+	t.schema = schema
+
+	return nil
+}
+
+func (t *tables) New(name string) *Table {
+
+	table := &Table{}
+
+	if err := table.init(name, t.schema); err != nil {
+		log.Fatalf("Error tables new: %s.", err.Error())
+	}
+
+	return table
 }

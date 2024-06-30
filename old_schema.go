@@ -1,5 +1,13 @@
 package pdb
 
+import (
+	"context"
+	"database/sql"
+	"strings"
+
+	"github.com/pequin/xlog"
+)
+
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -16,5 +24,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Index struct {
+type old_schema struct {
+	nme string    // Name.
+	con *sql.Conn // Connection to database.
+}
+
+func (d *old_database) Schema(name string) *old_schema {
+
+	con, err := d.dba.Conn(context.Background())
+	xlog.Fatalln(err)
+	return &old_schema{nme: strings.ToLower(name), con: con}
 }
