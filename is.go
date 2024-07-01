@@ -17,30 +17,30 @@ limitations under the License.
 */
 
 type is struct {
-	c Column
-	v string
+	cun Column // Column.
+	vue string // Value.
 }
 
 func (i is) Less() *Where {
-	return &Where{clm: i.c, opr: "<", vle: i.v}
+	return &Where{cln: i.cun, cmn: "<", vle: i.vue}
 }
 
 func (i is) LessOrEqual() *Where {
-	return &Where{clm: i.c, opr: "<=", vle: i.v}
+	return &Where{cln: i.cun, cmn: "<=", vle: i.vue}
 }
 
 func (i is) Equal() *Where {
-	return &Where{clm: i.c, opr: "=", vle: i.v}
+	return &Where{cln: i.cun, cmn: "=", vle: i.vue}
 }
 
 func (i is) NotEqual() *Where {
-	return &Where{clm: i.c, opr: "<>", vle: i.v}
+	return &Where{cln: i.cun, cmn: "<>", vle: i.vue}
 }
 
 func (i is) Greater() *Where {
-	return &Where{clm: i.c, opr: ">", vle: i.v}
+	return &Where{cln: i.cun, cmn: ">", vle: i.vue}
 }
 
 func (i is) GreaterOrEqual() *Where {
-	return &Where{clm: i.c, opr: ">=", vle: i.v}
+	return &Where{cln: i.cun, cmn: ">=", vle: i.vue}
 }

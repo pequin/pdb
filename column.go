@@ -22,19 +22,14 @@ limitations under the License.
 */
 
 type Column interface {
-	name() string
-	datatype() string
-	table() *Table
+	name() string  // Name.
+	as() string    // PostgreSQL data type.
+	table() *Table // Related table.
 }
 type column struct {
-	nme string
-	tbl *Table
+	nam string // Name.
+	tbe *Table // Related table.
 }
-
-// type insert struct {
-// 	clm Column
-// 	vle any
-// }
 
 func (c *column) init(table *Table) error {
 
@@ -42,26 +37,22 @@ func (c *column) init(table *Table) error {
 		return errors.New("pointer to table is null")
 	}
 
-	c.tbl = table
+	c.tbe = table
 
 	return nil
 }
 
 func (c column) Int64(name string) *Int64 {
 
-	clm := &Int64{}
+	cun := &Int64{}
 
-	if err := clm.init(name, c.tbl); err != nil {
+	if err := cun.init(name, c.tbe); err != nil {
 		log.Fatalf("Column: %s.", err.Error())
 	}
 
-	if err := c.tbl.Columns.append(clm); err != nil {
+	if err := c.tbe.Columns.append(cun); err != nil {
 		log.Fatalf("Column: %s.", err.Error())
 	}
 
-	return clm
+	return cun
 }
-
-// func (w *Where) And(f *Filter) *Filter {
-// 	return &Filter{whr: w, log: true, next: f}
-// }

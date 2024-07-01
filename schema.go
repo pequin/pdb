@@ -25,8 +25,8 @@ limitations under the License.
 
 type Schema schema
 type schema struct {
-	nme    string
-	dba    *Database
+	nam    string    // Name.
+	dbe    *Database // Database.
 	Tables tables
 }
 
@@ -42,8 +42,8 @@ func (s *Schema) init(name string, database *Database) error {
 		return errors.New("pointer to database is null")
 	}
 
-	s.nme = name
-	s.dba = database
+	s.nam = name
+	s.dbe = database
 
 	if err := s.Tables.init(s); err != nil {
 		return err
@@ -54,7 +54,7 @@ func (s *Schema) init(name string, database *Database) error {
 
 func (s *Schema) Create() {
 
-	if _, err := s.dba.db.Exec(fmt.Sprintf("CREATE SCHEMA %s;", s.nme)); err != nil {
+	if _, err := s.dbe.pgd.Exec(fmt.Sprintf("CREATE SCHEMA %s;", s.nam)); err != nil {
 		log.Fatalf("Error schema create: %s.", err.Error())
 	}
 }

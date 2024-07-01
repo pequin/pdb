@@ -1,12 +1,5 @@
 package pdb
 
-import (
-	"context"
-	"database/sql"
-	"fmt"
-	"log"
-)
-
 /*
 Copyright 2024 Vasiliy Vdovin
 
@@ -24,54 +17,11 @@ limitations under the License.
 */
 
 type data struct {
-	tbl *Table
-	stx *sql.Tx
+	tbe *Table // Related table.
 }
 
 func (d *data) init(table *Table) error {
-	d.tbl = table
+	d.tbe = table
 
 	return nil
-}
-
-func (d *data) begin() error {
-
-	if d.stx == nil {
-
-		stx, err := d.tbl.sma.dba.db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
-		if err != nil {
-			return err
-		}
-
-		d.stx = stx
-	}
-
-	return nil
-}
-
-func (d *data) commit() error {
-	if d.stx == nil {
-		return fmt.Errorf("pointer to transaction is null")
-	}
-
-	if err := d.stx.Commit(); err != nil {
-
-		if err := d.stx.Rollback(); err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	d.stx = nil
-
-	return nil
-
-}
-
-func (d *data) Commit() {
-
-	if err := d.commit(); err != nil {
-		log.Fatalf("Error data commit: %s.", err.Error())
-	}
 }

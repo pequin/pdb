@@ -22,7 +22,7 @@ limitations under the License.
 */
 
 type databases struct {
-	server *Server
+	ser *Server // Server.
 }
 
 func (d *databases) init(server *Server) error {
@@ -31,7 +31,7 @@ func (d *databases) init(server *Server) error {
 		return errors.New("pointer to server is null")
 	}
 
-	d.server = server
+	d.ser = server
 
 	return nil
 }
@@ -40,7 +40,7 @@ func (d *databases) Open(name string) *Database {
 
 	database := &Database{}
 
-	if err := database.init(name, d.server); err != nil {
+	if err := database.init(name, d.ser); err != nil {
 		log.Fatalf("Error databases new: %s.", err.Error())
 	}
 
@@ -56,7 +56,7 @@ func (d *databases) Create(name string) *Database {
 
 	database := &Database{}
 
-	if err := database.init(name, d.server); err != nil {
+	if err := database.init(name, d.ser); err != nil {
 		log.Fatalf("Error databases create: %s.", err.Error())
 	}
 

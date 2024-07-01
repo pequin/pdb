@@ -22,7 +22,7 @@ limitations under the License.
 */
 
 type tables struct {
-	schema *Schema
+	sea *Schema // Schema.
 }
 
 func (t *tables) init(schema *Schema) error {
@@ -31,7 +31,7 @@ func (t *tables) init(schema *Schema) error {
 		return errors.New("pointer to schema is null")
 	}
 
-	t.schema = schema
+	t.sea = schema
 
 	return nil
 }
@@ -40,7 +40,7 @@ func (t *tables) New(name string) *Table {
 
 	table := &Table{}
 
-	if err := table.init(name, t.schema); err != nil {
+	if err := table.init(name, t.sea); err != nil {
 		log.Fatalf("Error tables new: %s.", err.Error())
 	}
 

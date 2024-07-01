@@ -24,9 +24,8 @@ limitations under the License.
 
 type Reader reader
 type reader struct {
-	dta *data
-	// lts []Listener
-	buf    []any
+	dta    *data
+	ber    []any
 	Filter filters
 }
 
@@ -36,7 +35,7 @@ func (r *Reader) init(data *data, row ...Listener) error {
 		return errors.New("pointer to data is null")
 	}
 
-	lts := make([]*Listener, data.tbl.Columns.len())
+	lts := make([]*Listener, data.tbe.Columns.len())
 
 	if len(row) < 1 {
 		return errors.New("no listeners")
@@ -44,18 +43,18 @@ func (r *Reader) init(data *data, row ...Listener) error {
 
 	for ri := 0; ri < len(row); ri++ {
 
-		if idx, err := data.tbl.Columns.index(row[ri].clm); err == nil {
+		if idx, err := data.tbe.Columns.index(row[ri].cun); err == nil {
 
 			// Checking duplication.
-			for i := 0; i < data.tbl.Columns.len(); i++ {
+			for i := 0; i < data.tbe.Columns.len(); i++ {
 
 				if lts[i] != nil {
 
-					if lts[i].clm == row[ri].clm {
-						return fmt.Errorf("listener in column with name \"%s\" already exists", lts[i].clm.name())
+					if lts[i].cun == row[ri].cun {
+						return fmt.Errorf("listener in column with name \"%s\" already exists", lts[i].cun.name())
 					}
-					if lts[i].buf == row[ri].buf {
-						return fmt.Errorf("at a column with name \"%s\" listener pointer matches the listener in column with name \"%s\" which was added earlier", row[ri].clm.name(), lts[i].clm.name())
+					if lts[i].ber == row[ri].ber {
+						return fmt.Errorf("at a column with name \"%s\" listener pointer matches the listener in column with name \"%s\" which was added earlier", row[ri].cun.name(), lts[i].cun.name())
 					}
 				}
 			}
@@ -67,10 +66,10 @@ func (r *Reader) init(data *data, row ...Listener) error {
 		}
 	}
 
-	for i := 0; i < data.tbl.Columns.len(); i++ {
+	for i := 0; i < data.tbe.Columns.len(); i++ {
 
 		if lts[i] != nil {
-			r.buf = append(r.buf, lts[i].buf)
+			r.ber = append(r.ber, lts[i].ber)
 		}
 	}
 
@@ -84,7 +83,7 @@ func (d *data) NewReader(row ...Listener) *Reader {
 	r := &Reader{}
 
 	if err := r.init(d, row...); err != nil {
-		log.Fatalf("Error data in table \"%s\" new reader: %s.", d.tbl.nme, err.Error())
+		log.Fatalf("Error data in table \"%s\" new reader: %s.", d.tbe.nam, err.Error())
 	}
 
 	// for i := 0; i < len(r.buf); i++ {

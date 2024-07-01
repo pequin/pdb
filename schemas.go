@@ -22,7 +22,7 @@ limitations under the License.
 */
 
 type schemas struct {
-	database *Database
+	dbe *Database
 }
 
 func (s *schemas) init(database *Database) error {
@@ -31,18 +31,18 @@ func (s *schemas) init(database *Database) error {
 		return errors.New("pointer to database is null")
 	}
 
-	s.database = database
+	s.dbe = database
 
 	return nil
 }
 
 func (s *schemas) New(name string) *Schema {
 
-	schema := &Schema{}
+	sma := &Schema{}
 
-	if err := schema.init(name, s.database); err != nil {
+	if err := sma.init(name, s.dbe); err != nil {
 		log.Fatalf("Error schemas new: %s.", err.Error())
 	}
 
-	return schema
+	return sma
 }

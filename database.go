@@ -1,9 +1,11 @@
 package pdb
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -26,9 +28,10 @@ limitations under the License.
 
 type Database database
 type database struct {
-	name    string
-	server  *Server
-	db      *sql.DB
+	nam     string  // Name.
+	ser     *Server // Server.
+	pgd     *sql.DB // PostgreSQL database.
+	ttn     *sql.Tx // Transaction.
 	Schemas schemas
 }
 
@@ -44,8 +47,8 @@ func (d *Database) init(name string, server *Server) error {
 		return errors.New("pointer to server is null")
 	}
 
-	d.name = name
-	d.server = server
+	d.nam = name
+	d.ser = server
 
 	if err := d.Schemas.init(d); err != nil {
 		return err
@@ -56,13 +59,13 @@ func (d *Database) init(name string, server *Server) error {
 
 func (d *Database) open() error {
 
-	if db, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", d.server.adr, strconv.FormatUint(d.server.prt, 10), d.server.usr, d.server.pwd, d.name)); err != nil {
+	if pgd, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", d.ser.ads, strconv.FormatUint(d.ser.prt, 10), d.ser.uer, d.ser.pwd, d.nam)); err != nil {
 		return err
 	} else {
-		d.db = db
+		d.pgd = pgd
 	}
 
-	if err := d.db.Ping(); err != nil {
+	if err := d.pgd.Ping(); err != nil {
 		return err
 	}
 
@@ -71,19 +74,61 @@ func (d *Database) open() error {
 
 func (d *Database) create() error {
 
-	tdb, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", d.server.adr, strconv.FormatUint(d.server.prt, 10), d.server.usr, d.server.pwd))
+	pgd, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", d.ser.ads, strconv.FormatUint(d.ser.prt, 10), d.ser.uer, d.ser.pwd))
 
 	if err != nil {
 		return err
 	}
 
-	if err := tdb.Ping(); err != nil {
+	if err := pgd.Ping(); err != nil {
 		return err
 	}
 
-	if _, err := tdb.Exec(fmt.Sprintf("CREATE DATABASE %s;", d.name)); err != nil {
+	if _, err := pgd.Exec(fmt.Sprintf("CREATE DATABASE %s;", d.nam)); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (d *Database) begin() error {
+
+	if d.ttn == nil {
+
+		ttn, err := d.pgd.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
+		if err != nil {
+			return err
+		}
+
+		d.ttn = ttn
+	}
+
+	return nil
+}
+
+func (d *Database) commit() error {
+	if d.ttn == nil {
+		return fmt.Errorf("pointer to transaction is null")
+	}
+
+	if err := d.ttn.Commit(); err != nil {
+
+		if err := d.ttn.Rollback(); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	d.ttn = nil
+
+	return nil
+
+}
+
+func (d *Database) Commit() {
+
+	if err := d.commit(); err != nil {
+		log.Fatalf("Error database commit: %s.", err.Error())
+	}
 }

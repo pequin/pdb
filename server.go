@@ -32,10 +32,10 @@ type Options struct {
 type Server server
 type server struct {
 	Databases databases
-	adr       string
-	prt       uint64
-	usr       string
-	pwd       string
+	ads       string // Address.
+	prt       uint64 // Port.
+	uer       string // User.
+	pwd       string // Password.
 }
 
 func (s *Server) init(opt *Options) error {
@@ -54,9 +54,9 @@ func (s *Server) init(opt *Options) error {
 		return errors.New("password is not specified")
 	}
 
-	s.adr = adr
+	s.ads = adr
 	s.prt = opt.Port
-	s.usr = usr
+	s.uer = usr
 	s.pwd = pwd
 
 	if err := s.Databases.init(s); err != nil {

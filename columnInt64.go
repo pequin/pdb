@@ -36,38 +36,34 @@ func (i *Int64) init(name string, table *Table) error {
 		return errors.New("int64 init: pointer to table is null")
 	}
 
-	i.nme = name
-	i.tbl = table
+	i.nam = name
+	i.tbe = table
 
 	return nil
 }
 
 // Implementation of the "Column" interface.
 func (i *Int64) name() string {
-	return i.nme
+	return i.nam
 }
 
 // Implementation of the "Column" interface.
-func (Int64) datatype() string {
+func (Int64) as() string {
 	return "BIGINT"
 }
 
 // Implementation of the "Column" interface.
 func (i *Int64) table() *Table {
-	return i.tbl
+	return i.tbe
 }
-
-// func (i *Int64) Insert(value int64) insert {
-// 	return insert{clm: i, vle: value}
-// }
 
 func (i *Int64) Listen(value *int64) Listener {
 	if value == nil {
-		log.Fatalf("Error int64 create listen for column with name \"%s\": pointer to value is null.", i.nme)
+		log.Fatalf("Error int64 create listen for column with name \"%s\": pointer to value is null.", i.nam)
 	}
-	return Listener{clm: i, buf: value}
+	return Listener{cun: i, ber: value}
 }
 
 func (i *Int64) Is(value int64) is {
-	return is{c: i, v: fmt.Sprintf("%d", value)}
+	return is{cun: i, vue: fmt.Sprintf("%d", value)}
 }

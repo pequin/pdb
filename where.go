@@ -23,19 +23,19 @@ limitations under the License.
 
 type Where where
 type where struct {
-	clm Column
-	opr string
-	vle string
+	cln Column // Column interface.
+	cmn string // Comparison.
+	vle string // Value.
 }
 
 func (w *Where) update(i is) error {
-	if w.clm.table() != i.c.table() {
-		return fmt.Errorf("column with name \"%s\" refers to the table \"%s\" and column with name \"%s\" refers to the table \"%s\"", w.clm.name(), w.clm.table().nme, i.c.name(), i.c.table().nme)
+	if w.cln.table() != i.cun.table() {
+		return fmt.Errorf("column with name \"%s\" refers to the table \"%s\" and column with name \"%s\" refers to the table \"%s\"", w.cln.name(), w.cln.table().nam, i.cun.name(), i.cun.table().nam)
 	}
-	if w.clm != i.c {
-		return fmt.Errorf("column with name \"%s\" do not match with column \"%s\" in where", w.clm.name(), i.c.name())
+	if w.cln != i.cun {
+		return fmt.Errorf("column with name \"%s\" do not match with column \"%s\" in where", w.cln.name(), i.cun.name())
 	}
-	w.vle = i.v
+	w.vle = i.vue
 
 	return nil
 }

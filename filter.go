@@ -25,8 +25,8 @@ limitations under the License.
 
 type Filter filter
 type filter struct {
-	wrs []*Where
-	lgs map[*Where]bool
+	whe []*Where        // Where.
+	lis map[*Where]bool // Logics.
 }
 type filters struct {
 	flt *Filter
@@ -40,8 +40,8 @@ func (f *filters) init(filter *Filter) error {
 }
 
 func (f *Filter) init() error {
-	f.lgs = make(map[*Where]bool)
-	f.wrs = make([]*Where, 0)
+	f.whe = make([]*Where, 0)
+	f.lis = make(map[*Where]bool)
 	return nil
 }
 
@@ -51,44 +51,44 @@ func (f *Filter) add(where *Where, log bool) error {
 		return errors.New("pointer to where is null")
 	}
 
-	for i := 0; i < len(f.wrs); i++ {
+	for i := 0; i < len(f.whe); i++ {
 
-		if f.wrs[i] == where {
-			return fmt.Errorf("filter from column with name \"%s\" is already exist", f.wrs[i].clm.name())
+		if f.whe[i] == where {
+			return fmt.Errorf("filter from column with name \"%s\" is already exist", f.whe[i].cln.name())
 		}
 	}
 
-	if is := f.lgs[where]; is {
-		return fmt.Errorf("filter from column with name \"%s\" is already exist", where.clm.name())
+	if is := f.lis[where]; is {
+		return fmt.Errorf("filter from column with name \"%s\" is already exist", where.cln.name())
 	}
 
-	f.wrs = append(f.wrs, where)
-	f.lgs[where] = log
+	f.whe = append(f.whe, where)
+	f.lis[where] = log
 
 	return nil
 }
 
-func (f *filters) Wwhere() (string, error) {
+func (f *filters) wwhere() (string, error) {
 
-	s := make([]string, len(f.flt.wrs))
+	s := make([]string, len(f.flt.whe))
 
 	log := "OR"
 
-	for i := 0; i < len(f.flt.wrs); i++ {
+	for i := 0; i < len(f.flt.whe); i++ {
 
-		w := f.flt.wrs[i]
+		w := f.flt.whe[i]
 
 		if i == 0 {
-			s[i] = fmt.Sprintf("%s.%s.%s %s '%s'", w.clm.table().sma.nme, w.clm.table().nme, w.clm.name(), w.opr, w.vle)
+			s[i] = fmt.Sprintf("%s.%s.%s %s '%s'", w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cln, w.vle)
 		} else {
 
-			if lg, is := f.flt.lgs[w]; is {
-				log = strings.NewReplacer("true", "AND", "false", "OR").Replace(fmt.Sprintf("%t", lg))
+			if l, b := f.flt.lis[w]; b {
+				log = strings.NewReplacer("true", "AND", "false", "OR").Replace(fmt.Sprintf("%t", l))
 			} else {
 				return "", errors.New("missing logical operator")
 			}
 
-			s[i] = fmt.Sprintf("%s %s.%s.%s %s '%s'", log, w.clm.table().sma.nme, w.clm.table().nme, w.clm.name(), w.opr, w.vle)
+			s[i] = fmt.Sprintf("%s %s.%s.%s %s '%s'", log, w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cmn, w.vle)
 		}
 	}
 
@@ -106,7 +106,7 @@ func (f *filters) By(where *Where) *Filter {
 		log.Fatalf("Error filter by: %s.", err.Error())
 	}
 
-	flt.wrs = append(flt.wrs, where)
+	flt.whe = append(flt.whe, where)
 	f.flt = flt
 
 	return flt

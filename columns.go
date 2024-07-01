@@ -23,25 +23,25 @@ limitations under the License.
 
 type columns struct {
 	New column
-	tbl *Table
-	hdr map[Column]int
+	tbe *Table         // Related table.
+	her map[Column]int // Header.
 }
 
 func (c *columns) init(table *Table) error {
 	if table == nil {
 		return errors.New("pointer to table is null")
 	}
-	c.tbl = table
-	c.hdr = make(map[Column]int)
+	c.tbe = table
+	c.her = make(map[Column]int)
 
-	if err := c.New.init(c.tbl); err != nil {
+	if err := c.New.init(c.tbe); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *columns) len() int {
-	return len(c.hdr)
+	return len(c.her)
 }
 
 // func (c *columns) header() ([]string, error) {
@@ -61,12 +61,12 @@ func (c *columns) len() int {
 
 func (c *columns) index(column Column) (int, error) {
 
-	idx, ise := c.hdr[column]
+	idx, ise := c.her[column]
 	if ise {
 		return idx, nil
 	}
 
-	return -1, fmt.Errorf("column in table \"%s\" not found", c.tbl.nme)
+	return -1, fmt.Errorf("column in table \"%s\" not found", c.tbe.nam)
 }
 
 // func (c *columns) column(index int) (Column, error) {
@@ -83,13 +83,13 @@ func (c *columns) index(column Column) (int, error) {
 func (c *columns) datatypes() ([]string, error) {
 
 	if c.len() < 1 {
-		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbl.nme)
+		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbe.nam)
 	}
 
 	t := make([]string, c.len())
 
-	for clm, i := range c.hdr {
-		t[i] = fmt.Sprintf("%s %s NOT NULL", clm.name(), clm.datatype())
+	for clm, i := range c.her {
+		t[i] = fmt.Sprintf("%s %s NOT NULL", clm.name(), clm.as())
 	}
 
 	return t, nil
@@ -97,17 +97,17 @@ func (c *columns) datatypes() ([]string, error) {
 
 func (c *columns) append(column Column) error {
 
-	if _, ise := c.hdr[column]; ise {
+	if _, ise := c.her[column]; ise {
 		return fmt.Errorf("column \"%s\" already exists", column.name())
 	}
 
-	for clm := range c.hdr {
+	for clm := range c.her {
 		if clm.name() == column.name() {
 			return fmt.Errorf("column \"%s\" already exists", column.name())
 		}
 	}
 
-	c.hdr[column] = c.len()
+	c.her[column] = c.len()
 
 	return nil
 }

@@ -25,8 +25,8 @@ limitations under the License.
 
 type Table table
 type table struct {
-	nme     string
-	sma     *Schema
+	nam     string  // Name of table.
+	sma     *Schema // Schema.
 	Columns columns
 	Data    data
 }
@@ -43,7 +43,7 @@ func (t *Table) init(name string, schema *Schema) error {
 		return errors.New("pointer to schema is null")
 	}
 
-	t.nme = name
+	t.nam = name
 	t.sma = schema
 
 	if err := t.Columns.init(t); err != nil {
@@ -64,7 +64,7 @@ func (t *Table) Create() {
 		log.Fatalf("Error table create: %s.", err.Error())
 	}
 
-	if _, err := t.sma.dba.db.Exec(fmt.Sprintf("CREATE TABLE %s.%s (%s)", t.sma.nme, t.nme, strings.Join(dts, ", "))); err != nil {
+	if _, err := t.sma.dbe.pgd.Exec(fmt.Sprintf("CREATE TABLE %s.%s (%s)", t.sma.nam, t.nam, strings.Join(dts, ", "))); err != nil {
 		log.Fatalf("Error table create: %s.", err.Error())
 	}
 }
@@ -112,8 +112,8 @@ func (t *Table) Create() {
 
 type Listener listener
 type listener struct {
-	clm Column
-	buf any
+	cun Column
+	ber any
 }
 
 // func (s *Select) Filter() {
