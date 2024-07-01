@@ -25,9 +25,18 @@ limitations under the License.
 
 type Filter filter
 type filter struct {
-	flt *Filter
 	wrs []*Where
 	lgs map[*Where]bool
+}
+type filters struct {
+	flt *Filter
+}
+
+func (f *filters) init(filter *Filter) error {
+	if filter == nil {
+		return errors.New("pointer to data is null")
+	}
+	return nil
 }
 
 func (f *Filter) init() error {
@@ -59,7 +68,7 @@ func (f *Filter) add(where *Where, log bool) error {
 	return nil
 }
 
-func (f *filter) where() (string, error) {
+func (f *filters) Wwhere() (string, error) {
 
 	s := make([]string, len(f.flt.wrs))
 
@@ -74,11 +83,7 @@ func (f *filter) where() (string, error) {
 		} else {
 
 			if lg, is := f.flt.lgs[w]; is {
-				if lg {
-					log = "AND"
-				} else {
-					log = "OR"
-				}
+				log = strings.NewReplacer("true", "AND", "false", "OR").Replace(fmt.Sprintf("%t", lg))
 			} else {
 				return "", errors.New("missing logical operator")
 			}
@@ -90,7 +95,7 @@ func (f *filter) where() (string, error) {
 	return fmt.Sprintf("WHERE %s", strings.Join(s, " ")), nil
 }
 
-func (f *filter) By(where *Where) *Filter {
+func (f *filters) By(where *Where) *Filter {
 
 	if where == nil {
 		log.Fatalln("Error filter by: pointer to where is null.")

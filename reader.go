@@ -27,7 +27,7 @@ type reader struct {
 	dta *data
 	// lts []Listener
 	buf    []any
-	Filter filter
+	Filter filters
 }
 
 func (r *Reader) init(data *data, row ...Listener) error {
