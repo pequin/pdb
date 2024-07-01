@@ -31,13 +31,13 @@ type column struct {
 	tbe *Table // Related table.
 }
 
-func (c *column) init(table *Table) error {
+func (c *column) init(tbe *Table) error {
 
-	if table == nil {
+	if tbe == nil {
 		return errors.New("pointer to table is null")
 	}
 
-	c.tbe = table
+	c.tbe = tbe
 
 	return nil
 }

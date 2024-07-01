@@ -68,7 +68,11 @@ func (f *Filter) add(where *Where, log bool) error {
 	return nil
 }
 
-func (f *filters) wwhere() (string, error) {
+func (f *filters) where() (string, error) {
+
+	if len(f.flt.whe) < 1 {
+		return "", errors.New("missing where")
+	}
 
 	s := make([]string, len(f.flt.whe))
 

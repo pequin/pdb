@@ -27,6 +27,7 @@ type reader struct {
 	dta    *data
 	ber    []any
 	Filter filters
+	Sort   sorting
 }
 
 func (r *Reader) init(data *data, row ...Listener) error {
@@ -95,4 +96,8 @@ func (d *data) NewReader(row ...Listener) *Reader {
 	// }
 
 	return r
+}
+
+func (r *Reader) Ruuunn() {
+
 }
