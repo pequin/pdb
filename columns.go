@@ -44,20 +44,20 @@ func (c *columns) len() int {
 	return len(c.her)
 }
 
-// func (c *columns) header() ([]string, error) {
+func (c *columns) header() ([]string, error) {
 
-// 	if c.len() < 1 {
-// 		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbe.nam)
-// 	}
+	if c.len() < 1 {
+		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbe.nam)
+	}
 
-// 	hdr := make([]string, c.len())
+	hdr := make([]string, c.len())
 
-// 	for clm, idx := range c.her {
-// 		hdr[idx] = fmt.Sprintf("%s.%s.%s", clm.table().sma.nam, clm.table().nam, clm.name())
-// 	}
+	for clm, idx := range c.her {
+		hdr[idx] = clm.name()
+	}
 
-//		return hdr, nil
-//	}
+	return hdr, nil
+}
 
 var errColumnsIndexNotFound = errors.New("index for column is not found")
 

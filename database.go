@@ -1,6 +1,7 @@
 package pdb
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -90,20 +91,20 @@ func (d *Database) create() error {
 	return nil
 }
 
-// func (d *Database) begin() error {
+func (d *Database) begin() error {
 
-// 	if d.ttn == nil {
+	if d.ttn == nil {
 
-// 		ttn, err := d.pgd.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
-// 		if err != nil {
-// 			return err
-// 		}
+		ttn, err := d.pgd.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: false})
+		if err != nil {
+			return err
+		}
 
-// 		d.ttn = ttn
-// 	}
+		d.ttn = ttn
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 func (d *Database) commit() error {
 	if d.ttn == nil {

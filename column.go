@@ -2,7 +2,6 @@ package pdb
 
 import (
 	"errors"
-	"log"
 )
 
 /*
@@ -31,6 +30,16 @@ type column struct {
 	tbe *Table // Related table.
 }
 
+type insert struct {
+	cun Column
+	vue any
+}
+
+type listener struct {
+	cun Column
+	ber any
+}
+
 func (c *column) init(tbe *Table) error {
 
 	if tbe == nil {
@@ -40,19 +49,4 @@ func (c *column) init(tbe *Table) error {
 	c.tbe = tbe
 
 	return nil
-}
-
-func (c column) Int64(name string) *Int64 {
-
-	cun := &Int64{}
-
-	if err := cun.init(name, c.tbe); err != nil {
-		log.Fatalf("Column: %s.", err.Error())
-	}
-
-	if err := c.tbe.Columns.append(cun); err != nil {
-		log.Fatalf("Column: %s.", err.Error())
-	}
-
-	return cun
 }

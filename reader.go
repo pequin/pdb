@@ -34,13 +34,13 @@ type reader struct {
 	Sort   sorting
 }
 
-func (r *Reader) init(data *data, row ...Listener) error {
+func (r *Reader) init(data *data, row ...listener) error {
 
 	if data == nil {
 		return errors.New("pointer to data is null")
 	}
 
-	lts := make([]*Listener, data.tbe.Columns.len())
+	lts := make([]*listener, data.tbe.Columns.len())
 
 	if len(row) < 1 {
 		return errors.New("no listeners")
@@ -84,7 +84,7 @@ func (r *Reader) init(data *data, row ...Listener) error {
 	return nil
 }
 
-func (d *data) NewReader(row ...Listener) *Reader {
+func (d *data) NewReader(row ...listener) *Reader {
 
 	r := &Reader{}
 

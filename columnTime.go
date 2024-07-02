@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 /*
@@ -23,9 +24,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Int64 column
+type Time column
 
-func (i *Int64) init(name string, table *Table) error {
+func (t *Time) init(name string, table *Table) error {
 	name = strings.TrimSpace(name)
 
 	if len(name) < 1 {
@@ -36,53 +37,53 @@ func (i *Int64) init(name string, table *Table) error {
 		return errors.New("pointer to table is null")
 	}
 
-	i.nam = name
-	i.tbe = table
+	t.nam = name
+	t.tbe = table
 
 	return nil
 }
 
-func (c column) Int64(name string) *Int64 {
+func (c column) Time(name string) *Time {
 
-	cun := &Int64{}
+	cun := &Time{}
 
 	if err := cun.init(name, c.tbe); err != nil {
-		log.Fatalf("Error column int64: %s.", err.Error())
+		log.Fatalf("Error column time: %s.", err.Error())
 	}
 
 	if err := c.tbe.Columns.append(cun); err != nil {
-		log.Fatalf("Error column int64: %s.", err.Error())
+		log.Fatalf("Error column time: %s.", err.Error())
 	}
 
 	return cun
 }
 
 // Implementation of the "Column" interface.
-func (i *Int64) name() string {
-	return i.nam
+func (t *Time) name() string {
+	return t.nam
 }
 
 // Implementation of the "Column" interface.
-func (Int64) as() string {
-	return "BIGINT"
+func (Time) as() string {
+	return "TIMESTAMP WITHOUT TIME ZONE"
 }
 
 // Implementation of the "Column" interface.
-func (i *Int64) table() *Table {
-	return i.tbe
+func (t *Time) table() *Table {
+	return t.tbe
 }
 
-func (i *Int64) Listen(value *int64) listener {
+func (t *Time) Listen(value *time.Time) listener {
 	if value == nil {
-		log.Fatalf("Error int64 create listen for column with name \"%s\": pointer to value is null.", i.nam)
+		log.Fatalf("Error time create listen for column with name \"%s\": pointer to value is null.", t.nam)
 	}
-	return listener{cun: i, ber: value}
+	return listener{cun: t, ber: value}
 }
 
-func (i *Int64) Insert(value int64) insert {
-	return insert{cun: i, vue: value}
+func (t *Time) Insert(value time.Time) insert {
+	return insert{cun: t, vue: value.UTC()}
 }
 
-func (i *Int64) Is(value int64) is {
-	return is{cun: i, vue: fmt.Sprintf("%d", value)}
+func (t *Time) Is(value time.Time) is {
+	return is{cun: t, vue: fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%d", value.Year(), value.Month(), value.Day(), value.Hour(), value.Minute(), value.Second(), value.Nanosecond())}
 }
