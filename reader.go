@@ -102,10 +102,17 @@ func (r *Reader) Ruuunn() {
 
 	qqq := make([]string, 0)
 
+	// Where.
 	if whe, err := r.Filter.where(); err != nil && !errors.Is(errWhereIsEmpty, err) {
 		log.Fatalf("Error reader ruuunn: %s.", err.Error())
 	} else if !errors.Is(errWhereIsEmpty, err) {
 		qqq = append(qqq, whe)
+	}
+	// Order.
+	if odr, err := r.Sort.order(); err != nil && !errors.Is(errOrderIsEmpty, err) {
+		log.Fatalf("Error reader ruuunn: %s.", err.Error())
+	} else if !errors.Is(errOrderIsEmpty, err) {
+		qqq = append(qqq, odr)
 	}
 
 	fmt.Println(qqq)
