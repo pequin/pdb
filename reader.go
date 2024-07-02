@@ -110,16 +110,16 @@ func (r *Reader) Read(row func()) {
 	qry = append(qry, fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(r.her, ", "), r.dta.tbe.sma.nam, r.dta.tbe.nam))
 
 	// Where.
-	if whe, err := r.Filter.where(); err != nil && !errors.Is(errWhereIsEmpty, err) {
+	if whe, err := r.Filter.where(); err != nil && !errors.Is(errFiltersWhereIsEmpty, err) {
 		log.Fatalf("Error reader read: %s.", err.Error())
-	} else if !errors.Is(errWhereIsEmpty, err) {
+	} else if !errors.Is(errFiltersWhereIsEmpty, err) {
 		qry = append(qry, whe)
 	}
 
 	// Order.
-	if odr, err := r.Sort.order(); err != nil && !errors.Is(errOrderIsEmpty, err) {
+	if odr, err := r.Sort.order(); err != nil && !errors.Is(errSortingOrderIsEmpty, err) {
 		log.Fatalf("Error reader read: %s.", err.Error())
-	} else if !errors.Is(errOrderIsEmpty, err) {
+	} else if !errors.Is(errSortingOrderIsEmpty, err) {
 		qry = append(qry, odr)
 	}
 

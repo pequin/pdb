@@ -43,12 +43,12 @@ func (s *sorting) add(cun Column, lis bool) error {
 	return nil
 }
 
-var errOrderIsEmpty = errors.New("order is empty")
+var errSortingOrderIsEmpty = errors.New("order is empty")
 
 func (s *sorting) order() (string, error) {
 
 	if len(s.cun) < 1 {
-		return "", errOrderIsEmpty
+		return "", errSortingOrderIsEmpty
 	}
 
 	if len(s.cun) != len(s.lis) {

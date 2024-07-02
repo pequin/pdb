@@ -56,8 +56,10 @@ func (c *columns) len() int {
 // 		hdr[idx] = fmt.Sprintf("%s.%s.%s", clm.table().sma.nam, clm.table().nam, clm.name())
 // 	}
 
-// 	return hdr, nil
-// }
+//		return hdr, nil
+//	}
+
+var errColumnsIndexNotFound = errors.New("index for column is not found")
 
 func (c *columns) index(column Column) (int, error) {
 
@@ -66,7 +68,7 @@ func (c *columns) index(column Column) (int, error) {
 		return idx, nil
 	}
 
-	return -1, fmt.Errorf("column in table \"%s\" not found", c.tbe.nam)
+	return -1, errColumnsIndexNotFound
 }
 
 // func (c *columns) column(index int) (Column, error) {

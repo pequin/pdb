@@ -69,12 +69,12 @@ func (f *filters) add(where *Where, log bool) error {
 	return nil
 }
 
-var errWhereIsEmpty = errors.New("where is empty")
+var errFiltersWhereIsEmpty = errors.New("where is empty")
 
 func (f *filters) where() (string, error) {
 
 	if len(f.whe) < 1 {
-		return "", errWhereIsEmpty
+		return "", errFiltersWhereIsEmpty
 	}
 
 	s := make([]string, len(f.whe))
