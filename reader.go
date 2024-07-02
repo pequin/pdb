@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 )
 
 /*
@@ -26,6 +27,9 @@ type Reader reader
 type reader struct {
 	dta    *data
 	ber    []any
+	her    []string
+	lit    uint64
+	ost    uint64
 	Filter filters
 	Sort   sorting
 }
@@ -71,6 +75,7 @@ func (r *Reader) init(data *data, row ...Listener) error {
 
 		if lts[i] != nil {
 			r.ber = append(r.ber, lts[i].ber)
+			r.her = append(r.her, fmt.Sprintf("%s.%s.%s", lts[i].cun.table().sma.nam, lts[i].cun.table().nam, lts[i].cun.name()))
 		}
 	}
 
@@ -87,34 +92,57 @@ func (d *data) NewReader(row ...Listener) *Reader {
 		log.Fatalf("Error data in table \"%s\" new reader: %s.", d.tbe.nam, err.Error())
 	}
 
-	// for i := 0; i < len(r.buf); i++ {
-
-	// 	fdbdf := *r.buf[i].(*int64)
-
-	// 	fmt.Println("rr", fdbdf)
-
-	// }
-
 	return r
 }
 
-func (r *Reader) Ruuunn() {
+func (r *Reader) Limit(count uint64) {
+	r.lit = count
+}
+func (r *Reader) Offset(skip uint64) {
+	r.ost = skip
+}
 
-	qqq := make([]string, 0)
+func (r *Reader) Read(row func()) {
+
+	qry := make([]string, 0)
+
+	// Select.
+	qry = append(qry, fmt.Sprintf("SELECT %s FROM %s.%s", strings.Join(r.her, ", "), r.dta.tbe.sma.nam, r.dta.tbe.nam))
 
 	// Where.
 	if whe, err := r.Filter.where(); err != nil && !errors.Is(errWhereIsEmpty, err) {
-		log.Fatalf("Error reader ruuunn: %s.", err.Error())
+		log.Fatalf("Error reader read: %s.", err.Error())
 	} else if !errors.Is(errWhereIsEmpty, err) {
-		qqq = append(qqq, whe)
+		qry = append(qry, whe)
 	}
+
 	// Order.
 	if odr, err := r.Sort.order(); err != nil && !errors.Is(errOrderIsEmpty, err) {
-		log.Fatalf("Error reader ruuunn: %s.", err.Error())
+		log.Fatalf("Error reader read: %s.", err.Error())
 	} else if !errors.Is(errOrderIsEmpty, err) {
-		qqq = append(qqq, odr)
+		qry = append(qry, odr)
 	}
 
-	fmt.Println(qqq)
+	// Limit.
+	if r.lit > 0 {
+		qry = append(qry, fmt.Sprintf("LIMIT %d", r.lit))
+	}
+	//  Offset.
+	if r.ost > 0 {
+		qry = append(qry, fmt.Sprintf("OFFSET %d", r.ost))
+	}
 
+	rws, err := r.dta.tbe.sma.dbe.pgd.Query(strings.Join(qry, " "))
+	if err != nil {
+		log.Fatalf("Error reader read: %s.", err.Error())
+	}
+
+	for rws.Next() {
+
+		if err := rws.Scan(r.ber...); err == nil {
+			row()
+		} else {
+			log.Fatalf("Error reader read: %s.", err.Error())
+		}
+	}
 }

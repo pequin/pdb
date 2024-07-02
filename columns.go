@@ -47,13 +47,13 @@ func (c *columns) len() int {
 // func (c *columns) header() ([]string, error) {
 
 // 	if c.len() < 1 {
-// 		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbl.nme)
+// 		return nil, fmt.Errorf("header of table \"%s\" is empty", c.tbe.nam)
 // 	}
 
 // 	hdr := make([]string, c.len())
 
-// 	for clm, idx := range c.hdr {
-// 		hdr[idx] = clm.name()
+// 	for clm, idx := range c.her {
+// 		hdr[idx] = fmt.Sprintf("%s.%s.%s", clm.table().sma.nam, clm.table().nam, clm.name())
 // 	}
 
 // 	return hdr, nil
