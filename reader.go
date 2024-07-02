@@ -100,4 +100,14 @@ func (d *data) NewReader(row ...Listener) *Reader {
 
 func (r *Reader) Ruuunn() {
 
+	qqq := make([]string, 0)
+
+	if whe, err := r.Filter.where(); err != nil && !errors.Is(errWhereIsEmpty, err) {
+		log.Fatalf("Error reader ruuunn: %s.", err.Error())
+	} else if !errors.Is(errWhereIsEmpty, err) {
+		qqq = append(qqq, whe)
+	}
+
+	fmt.Println(qqq)
+
 }

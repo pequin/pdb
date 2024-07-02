@@ -25,27 +25,28 @@ limitations under the License.
 
 type Filter filter
 type filter struct {
+	flt *filters
+}
+type filters struct {
 	whe []*Where        // Where.
 	lis map[*Where]bool // Logics.
 }
-type filters struct {
-	flt *Filter
-}
 
-func (f *filters) init(filter *Filter) error {
-	if filter == nil {
-		return errors.New("pointer to data is null")
-	}
-	return nil
-}
-
-func (f *Filter) init() error {
+func (f *filters) init() {
 	f.whe = make([]*Where, 0)
 	f.lis = make(map[*Where]bool)
+}
+
+func (f *Filter) init(filters *filters) error {
+	if filters == nil {
+		return errors.New("pointer to data is null")
+	}
+	f.flt = filters
+
 	return nil
 }
 
-func (f *Filter) add(where *Where, log bool) error {
+func (f *filters) add(where *Where, log bool) error {
 
 	if where == nil {
 		return errors.New("pointer to where is null")
@@ -68,31 +69,30 @@ func (f *Filter) add(where *Where, log bool) error {
 	return nil
 }
 
+var errWhereIsEmpty = errors.New("where is empty")
+
 func (f *filters) where() (string, error) {
 
-	if len(f.flt.whe) < 1 {
-		return "", errors.New("missing where")
+	if len(f.whe) < 1 {
+		return "", errWhereIsEmpty
 	}
 
-	s := make([]string, len(f.flt.whe))
+	s := make([]string, len(f.whe))
 
-	log := "OR"
+	for i := 0; i < len(f.whe); i++ {
 
-	for i := 0; i < len(f.flt.whe); i++ {
-
-		w := f.flt.whe[i]
+		w := f.whe[i]
 
 		if i == 0 {
-			s[i] = fmt.Sprintf("%s.%s.%s %s '%s'", w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cln, w.vle)
+			s[i] = fmt.Sprintf("%s.%s.%s %s '%s'", w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cmn, w.vle)
 		} else {
 
-			if l, b := f.flt.lis[w]; b {
-				log = strings.NewReplacer("true", "AND", "false", "OR").Replace(fmt.Sprintf("%t", l))
+			if l, b := f.lis[w]; b {
+				s[i] = fmt.Sprintf("%s %s.%s.%s %s '%s'", strings.NewReplacer("true", "AND", "false", "OR").Replace(fmt.Sprintf("%t", l)), w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cmn, w.vle)
 			} else {
 				return "", errors.New("missing logical operator")
 			}
 
-			s[i] = fmt.Sprintf("%s %s.%s.%s %s '%s'", log, w.cln.table().sma.nam, w.cln.table().nam, w.cln.name(), w.cmn, w.vle)
 		}
 	}
 
@@ -101,24 +101,25 @@ func (f *filters) where() (string, error) {
 
 func (f *filters) By(where *Where) *Filter {
 
+	f.init()
+
 	if where == nil {
-		log.Fatalln("Error filter by: pointer to where is null.")
+		log.Fatalln("Error filters by: pointer to where is null.")
 	}
 	flt := &Filter{}
 
-	if err := flt.init(); err != nil {
-		log.Fatalf("Error filter by: %s.", err.Error())
+	if err := flt.init(f); err != nil {
+		log.Fatalf("Error filters by: %s.", err.Error())
 	}
 
-	flt.whe = append(flt.whe, where)
-	f.flt = flt
+	f.whe = append(f.whe, where)
 
 	return flt
 }
 
 func (f *Filter) And(where *Where) *Filter {
 
-	if err := f.add(where, true); err != nil {
+	if err := f.flt.add(where, true); err != nil {
 		log.Fatalf("Error filter and: %s.", err.Error())
 	}
 	return f
@@ -126,7 +127,7 @@ func (f *Filter) And(where *Where) *Filter {
 
 func (f *Filter) Or(where *Where) *Filter {
 
-	if err := f.add(where, false); err != nil {
+	if err := f.flt.add(where, false); err != nil {
 		log.Fatalf("Error filter or: %s.", err.Error())
 	}
 	return f
