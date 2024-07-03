@@ -76,8 +76,6 @@ func (w *Writter) Insert(row ...insert) {
 
 	qry := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s);", w.dta.tbe.sma.nam, w.dta.tbe.nam, strings.Join(her, ", "), strings.Join(vue, ", "))
 
-	fmt.Println("qry", qry)
-
 	if err := w.dta.tbe.sma.dbe.begin(); err != nil {
 		log.Fatalf("Error writter insert: %s.", err.Error())
 	}
